@@ -361,6 +361,7 @@
                   <span>Итого</span>
                   <span>${(order.total_price||0).toLocaleString()} ₸</span>
                 </div>
+                <button onclick="repeatOrder('${order.id}')" style="margin-top:12px;width:100%;padding:10px;background:#f0f5ff;color:#0066cc;border:1.5px solid #cce0ff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">🔁 Повторить заказ</button>
               </div>
             </div>`;
         }).join('');
@@ -373,6 +374,31 @@
 
     renderProfile();
     loadOrders();
+
+    if (sessionStorage.getItem('order_success')) {
+      sessionStorage.removeItem('order_success');
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background:#d1e7dd;color:#146c43;padding:12px 16px;font-weight:700;font-size:14px;text-align:center;margin:12px 16px 0;border-radius:10px';
+      banner.textContent = '✅ Ваш заказ принят! Доставим как можно скорее.';
+      document.querySelector('.section').before(banner);
+      setTimeout(() => banner.remove(), 4000);
+    }
+
+    async function repeatOrder(orderId) {
+      if (!confirm('Повторить этот заказ?')) return;
+      try {
+        const items = await API(
+          `order_items?order_id=eq.${orderId}&select=product_id,product_name,quantity,price_per_unit,pack_qty`
+        );
+        console.log('repeat items:', items);
+        if (!items.length) { alert('Позиции заказа не найдены'); return; }
+        sessionStorage.setItem('repeat_cart', JSON.stringify(items));
+        window.location.href = 'catalog.html';
+      } catch(e) {
+        console.error(e);
+        alert('Ошибка. Попробуйте ещё раз.');
+      }
+    }
   </script>
 </body>
 </html>

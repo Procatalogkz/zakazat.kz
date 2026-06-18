@@ -348,6 +348,7 @@ pre.code{background:var(--bg3);border:1px solid var(--border);border-radius:var(
   #page-products,
   #page-catalogs,
   #page-orders,
+  #page-drivers,
   #page-settings {
     display: none;
   }
@@ -357,6 +358,7 @@ pre.code{background:var(--bg3);border:1px solid var(--border);border-radius:var(
   #page-products.mob-active,
   #page-catalogs.mob-active,
   #page-orders.mob-active,
+  #page-drivers.mob-active,
   #page-settings.mob-active {
     display: block !important;
   }
@@ -419,6 +421,12 @@ pre.code{background:var(--bg3);border:1px solid var(--border);border-radius:var(
   /* Категорийный аккордеон */
   .folder-btn { font-size: 12px !important; padding: 12px !important; }
   #cats-accordion { margin: 0; }
+  /* Заказы — одна колонка на мобиле */
+  #orders-container > div { grid-template-columns: 1fr !important; }
+}
+
+@media(max-width:1024px) and (min-width:641px) {
+  #orders-container > div { grid-template-columns: repeat(2,1fr) !important; }
 }
 </style>
 </head>
@@ -477,6 +485,7 @@ const API = (endpoint, options = {}) => {
       <div class="sb-item"        id="nav-catalogs" onclick="go('catalogs')"> <span class="ico">🔗</span><span>Каталоги</span>   <span class="bc" id="cnt-catalogs">0</span></div>
       <div class="sb-section">Инструменты</div>
       <div class="sb-item" onclick="go('orders')">   🛍️ Заказы <span id="nav-orders-count" style="background:#e53935;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;display:none">0</span></div>
+      <div class="sb-item" onclick="go('drivers')">   <span class="ico">🚗</span> <span>Водители</span></div>
       <div class="sb-item" onclick="window.location.href='supervisor.html'"><span class="ico">📋</span><span>Консигнации</span></div>
       <div class="sb-item" onclick="window.open('coverage.html','_blank')">   <span class="ico">🗺️</span><span>Sales Coverage Map</span></div>
     </nav>
@@ -539,6 +548,10 @@ const API = (endpoint, options = {}) => {
           <div class="mob-tile-ico">🛍️</div>
           <div class="mob-tile-label">Заказы</div>
           <span class="mob-tile-badge" id="mob-cnt-orders" style="display:none">0</span>
+        </div>
+        <div class="mob-tile" onclick="mobGo('drivers')">
+          <div class="mob-tile-ico">🚗</div>
+          <div class="mob-tile-label">Водители</div>
         </div>
         <div class="mob-tile" onclick="window.location.href='supervisor.html'">
           <div class="mob-tile-ico">📋</div>
@@ -694,11 +707,29 @@ const API = (endpoint, options = {}) => {
 
       <!-- ── ORDERS ── -->
       <div id="page-orders" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-          <h2 style="font-size:20px;font-weight:700">🛍️ Заказы</h2>
-          <button onclick="loadOrders()" style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;font-size:14px;background:transparent;color:var(--text)">↻ Обновить</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <h2 style="font-size:18px;font-weight:700">🛍️ Заказы</h2>
+          <button onclick="loadOrders()" style="padding:7px 14px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;font-size:13px;background:transparent;color:var(--text)">↻ Обновить</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <input type="text" id="orders-search" placeholder="🔍 Поиск по магазину..." oninput="filterOrders()" style="flex:1;min-width:180px;padding:9px 13px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:13px;outline:none">
+          <select id="orders-status-filter" onchange="filterOrders()" style="padding:9px 13px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:13px;outline:none">
+            <option value="">Все статусы</option>
+            <option value="new">Новые</option>
+            <option value="sent">Отправленные</option>
+            <option value="delivered">Доставленные</option>
+          </select>
         </div>
         <div id="orders-container">Загрузка...</div>
+      </div>
+
+      <!-- ── DRIVERS ── -->
+      <div id="page-drivers" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 style="font-size:18px;font-weight:700">🚗 Водители</h2>
+          <button onclick="openDriverModal()" class="btn btn-primary">+ Добавить</button>
+        </div>
+        <div id="drivers-container">Загрузка...</div>
       </div>
 
     </div>
@@ -1004,6 +1035,61 @@ const API = (endpoint, options = {}) => {
   </div>
 </div>
 
+<!-- DRIVER MODAL -->
+<div class="overlay" id="m-driver">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-driver-title">Новый водитель</div>
+      <button class="modal-x" onclick="closeM('m-driver')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="drv-id">
+      <div class="fg">
+        <label>ФИО *</label>
+        <input type="text" id="drv-name" placeholder="Иванов Иван Иванович">
+      </div>
+      <div class="fg">
+        <label>Телефон</label>
+        <input type="tel" id="drv-phone" placeholder="+7 700 000 00 00">
+      </div>
+      <div class="fg">
+        <label>Номер автомобиля</label>
+        <input type="text" id="drv-car" placeholder="777 ABC 01">
+      </div>
+      <div class="fg">
+        <label>PIN-код *</label>
+        <input type="text" id="drv-pin" placeholder="1234" maxlength="6">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-driver')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveDriver()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN DRIVER -->
+<div class="overlay" id="m-assign-driver">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Назначить водителя</div>
+      <button class="modal-x" onclick="closeM('m-assign-driver')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Выберите водителя</label>
+        <select id="assign-driver-select">
+          <option value="">Загрузка...</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-assign-driver')">Отмена</button>
+      <button class="btn btn-primary" onclick="confirmAssignDriver()">Отправить</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE -->
 <div class="overlay" id="m-confirm">
   <div class="modal" style="max-width:420px">
@@ -1025,8 +1111,8 @@ const API = (endpoint, options = {}) => {
 // ═══════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════
-const PAGES = ['dash','cats','brands','products','catalogs','orders'];
-const TITLES = { dash:'Дашборд', cats:'Категории', brands:'Бренды / ТМ', products:'Товары', catalogs:'Каталоги', orders:'Заказы' };
+const PAGES = ['dash','cats','brands','products','catalogs','orders','drivers'];
+const TITLES = { dash:'Дашборд', cats:'Категории', brands:'Бренды / ТМ', products:'Товары', catalogs:'Каталоги', orders:'Заказы', drivers:'Водители' };
 const ACTIONS = {
   brands:   ()=>`<button class="btn btn-primary btn-sm" onclick="openBrandModal()">+ Бренд</button>`,
   products: ()=>`<button class="btn btn-primary btn-sm" onclick="openProdModal()">+ Товар</button>`,
@@ -1087,6 +1173,7 @@ function go(page) {
   if(page==='dash')     renderDash();
   if(page==='catalogs') renderCatalogs();
   if(page==='orders')   loadOrders();
+  if(page==='drivers') loadDrivers();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2758,96 +2845,122 @@ const STATUS_LABELS = {
 };
 const STATUS_NEXT = { new: 'sent', sent: 'delivered' };
 
+let _allOrders = [];
+let _allOrderItems = {};
+
 async function loadOrders() {
   const container = document.getElementById('orders-container');
   if (!container) return;
   container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Загрузка...</div>';
 
   try {
-    const orders = await API(
+    _allOrders = await API(
       'orders?order=created_at.desc&select=id,status,total_price,created_at,buyer_id,buyers(shop_name,phone)'
     );
 
-    const orderIds = orders.map(o => o.id);
+    const orderIds = _allOrders.map(o => o.id);
     let items = [];
     if (orderIds.length) {
       items = await API(
         `order_items?order_id=in.(${orderIds.join(',')})&select=order_id,product_name,quantity,total_price`
       );
     }
-
-    const itemsByOrder = {};
+    _allOrderItems = {};
     items.forEach(i => {
-      if (!itemsByOrder[i.order_id]) itemsByOrder[i.order_id] = [];
-      itemsByOrder[i.order_id].push(i);
+      if (!_allOrderItems[i.order_id]) _allOrderItems[i.order_id] = [];
+      _allOrderItems[i.order_id].push(i);
     });
 
-    // Счётчик новых в меню
-    const newCount = orders.filter(o => o.status === 'new').length;
+    // Счётчик новых
+    const newCount = _allOrders.filter(o => o.status === 'new').length;
     const badge = document.getElementById('nav-orders-count');
-    if (badge) {
-      badge.textContent = newCount;
-      badge.style.display = newCount > 0 ? 'inline' : 'none';
-    }
-    // Мобильный бейдж
+    if (badge) { badge.textContent = newCount; badge.style.display = newCount > 0 ? 'inline' : 'none'; }
     const mobBadge = document.getElementById('mob-cnt-orders');
-    if (mobBadge) {
-      mobBadge.textContent = newCount;
-      mobBadge.style.display = newCount > 0 ? '' : 'none';
+    if (mobBadge) { mobBadge.textContent = newCount; mobBadge.style.display = newCount > 0 ? '' : 'none'; }
+
+    // Звук при новых заказах
+    if (newCount > 0 && !document._lastNewCount) {
+      try { const a = new AudioContext(); const o = a.createOscillator(); const g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value = 520; g.gain.setValueAtTime(0.3,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.4); o.start(); o.stop(a.currentTime+0.4); } catch(e) {}
     }
+    document._lastNewCount = newCount;
 
-    if (!orders.length) {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Заказов пока нет</div>';
-      return;
-    }
-
-    container.innerHTML = orders.map(order => {
-      const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
-      const buyer = order.buyers;
-      const orderItems = itemsByOrder[order.id] || [];
-      const nextStatus = STATUS_NEXT[order.status];
-      const d = new Date(order.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
-
-      return `
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:12px">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
-            <div>
-              <div style="font-weight:700;font-size:15px">
-                ${buyer?.shop_name || '—'}
-                <span style="font-size:13px;font-weight:400;color:var(--muted)"> · ${buyer?.phone || ''}</span>
-              </div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">#${order.id.slice(0,8).toUpperCase()} · ${d}</div>
-            </div>
-            <span style="background:${st.bg};color:${st.color};padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">
-              ${st.label}
-            </span>
-          </div>
-
-          <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px">
-            ${orderItems.map(i => `
-              <div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0">
-                <span>${i.product_name} × ${i.quantity} уп.</span>
-                <span style="font-weight:600">${(i.total_price||0).toLocaleString()} ₸</span>
-              </div>`).join('')}
-            <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-              <span>Итого</span>
-              <span>${(order.total_price||0).toLocaleString()} ₸</span>
-            </div>
-          </div>
-
-          ${nextStatus ? `
-            <button onclick="updateOrderStatus('${order.id}', '${nextStatus}')"
-              style="width:100%;padding:10px;background:var(--accent);color:#000;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer">
-              ${nextStatus === 'sent' ? '📦 Отметить как Отправлен' : '✅ Отметить как Доставлен'}
-            </button>` : `
-            <div style="text-align:center;font-size:13px;color:var(--success);font-weight:600">✅ Доставлен</div>`}
-        </div>`;
-    }).join('');
-
+    filterOrders();
   } catch(e) {
     console.error(e);
     container.innerHTML = '<div style="color:var(--danger);text-align:center;padding:40px">Ошибка загрузки заказов</div>';
   }
+}
+
+function filterOrders() {
+  const search = (document.getElementById('orders-search')?.value || '').toLowerCase().trim();
+  const statusFilter = document.getElementById('orders-status-filter')?.value || '';
+  const container = document.getElementById('orders-container');
+  if (!container) return;
+
+  const filtered = _allOrders.filter(o => {
+    const buyer = o.buyers;
+    const matchSearch = !search ||
+      (buyer?.shop_name || '').toLowerCase().includes(search) ||
+      (buyer?.phone || '').includes(search);
+    const matchStatus = !statusFilter || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Заказов не найдено</div>';
+    return;
+  }
+
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">' + filtered.map(order => {
+    const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
+    const buyer = order.buyers;
+    const orderItems = _allOrderItems[order.id] || [];
+    const nextStatus = STATUS_NEXT[order.status];
+    const d = new Date(order.created_at).toLocaleDateString('ru-RU', {
+      day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+
+    return `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${buyer?.shop_name || '—'}
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${buyer?.phone || ''} · #${order.id.slice(0,8).toUpperCase()}</div>
+            <div style="font-size:11px;color:var(--muted2)">${d}</div>
+          </div>
+          <span style="background:${st.bg};color:${st.color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0">
+            ${st.label}
+          </span>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:10px">
+          ${orderItems.map(i => `
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0">
+              <span style="color:var(--muted)">${i.product_name} × ${i.quantity} уп.</span>
+              <span style="font-weight:600">${(i.total_price||0).toLocaleString()} ₸</span>
+            </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <span>Итого</span>
+            <span>${(order.total_price||0).toLocaleString()} ₸</span>
+          </div>
+        </div>
+        ${nextStatus ? (() => {
+          if (nextStatus === 'sent') {
+            return `<button onclick="openAssignDriver('${order.id}')"
+              style="width:100%;padding:9px;background:var(--accent);color:#000;border:none;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer">
+              📦 Отправить → назначить водителя
+            </button>`;
+          } else {
+            return `<button onclick="updateOrderStatus('${order.id}', 'delivered')"
+              style="width:100%;padding:9px;background:var(--accent);color:#000;border:none;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer">
+              ✅ Доставлен
+            </button>`;
+          }
+        })() : `
+          <div style="text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Доставлен</div>`}
+      </div>`;
+  }).join('') + '</div>';
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -2861,7 +2974,125 @@ async function updateOrderStatus(orderId, newStatus) {
     loadOrders();
   } catch(e) {
     toast('Ошибка обновления статуса', 'e');
-    console.error(e);
+  }
+}
+
+// Авто-обновление заказов каждые 60 секунд
+setInterval(() => {
+  const page = document.getElementById('page-orders');
+  if (page && page.style.display !== 'none') loadOrders();
+}, 60000);
+
+// ════════════════════ ВОДИТЕЛИ ════════════════════
+async function loadDrivers() {
+  const container = document.getElementById('drivers-container');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Загрузка...</div>';
+  try {
+    const drivers = await API('drivers?order=created_at.desc');
+    if (!drivers.length) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Водителей пока нет</div>';
+      return;
+    }
+    container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">' +
+      drivers.map(d => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px">
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px">🚗 ${d.name}</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:4px">📞 ${d.phone || '—'}</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:4px">🚙 ${d.car_number || '—'}</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px">🔑 PIN: <b style="color:var(--accent)">${d.pin || '—'}</b></div>
+          <div style="display:flex;gap:8px">
+            <button onclick="openDriverModal('${d.id}','${d.name}','${d.phone||''}','${d.car_number||''}','${d.pin||''}')"
+              class="btn btn-sm" style="flex:1;justify-content:center">✏️ Изменить</button>
+            <button onclick="deleteDriver('${d.id}')"
+              class="btn btn-sm btn-danger" style="flex:1;justify-content:center">🗑️</button>
+          </div>
+        </div>`).join('') + '</div>';
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--danger);text-align:center;padding:40px">Ошибка загрузки</div>';
+  }
+}
+
+let _editDriverId = null;
+
+function openDriverModal(id='', name='', phone='', car='', pin='') {
+  _editDriverId = id || null;
+  document.getElementById('drv-id').value = id;
+  document.getElementById('drv-name').value = name;
+  document.getElementById('drv-phone').value = phone;
+  document.getElementById('drv-car').value = car;
+  document.getElementById('drv-pin').value = pin;
+  document.getElementById('m-driver-title').textContent = id ? 'Редактировать водителя' : 'Новый водитель';
+  openM('m-driver');
+}
+
+async function saveDriver() {
+  const name = document.getElementById('drv-name').value.trim();
+  const phone = document.getElementById('drv-phone').value.trim();
+  const car = document.getElementById('drv-car').value.trim();
+  const pin = document.getElementById('drv-pin').value.trim();
+  if (!name) { toast('Введите ФИО', 'e'); return; }
+  if (!pin) { toast('Введите PIN', 'e'); return; }
+  try {
+    if (_editDriverId) {
+      await API(`drivers?id=eq.${_editDriverId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: { name, phone, car_number: car, pin }
+      });
+    } else {
+      await API('drivers', { method: 'POST', body: { name, phone, car_number: car, pin } });
+    }
+    toast('✅ Сохранено', 's');
+    closeM('m-driver');
+    loadDrivers();
+  } catch(e) { toast('Ошибка сохранения', 'e'); }
+}
+
+async function deleteDriver(id) {
+  if (!confirm('Удалить водителя?')) return;
+  try {
+    await API(`drivers?id=eq.${id}`, { method: 'DELETE' });
+    toast('Удалено', 's');
+    loadDrivers();
+  } catch(e) { toast('Ошибка удаления', 'e'); }
+}
+
+// ════════ НАЗНАЧЕНИЕ ВОДИТЕЛЯ ════════
+let _assignOrderId = null;
+
+async function openAssignDriver(orderId) {
+  _assignOrderId = orderId;
+  const select = document.getElementById('assign-driver-select');
+  select.innerHTML = '<option value="">Загрузка...</option>';
+  try {
+    const drivers = await API('drivers?order=name');
+    if (!drivers.length) {
+      toast('Сначала добавьте водителей', 'e');
+      return;
+    }
+    select.innerHTML = '<option value="">— выберите —</option>' +
+      drivers.map(d => `<option value="${d.id}">${d.name} · ${d.car_number || ''}</option>`).join('');
+    openM('m-assign-driver');
+  } catch(e) {
+    toast('Ошибка загрузки водителей', 'e');
+  }
+}
+
+async function confirmAssignDriver() {
+  const driverId = document.getElementById('assign-driver-select').value;
+  if (!driverId) { toast('Выберите водителя', 'e'); return; }
+  try {
+    await API(`orders?id=eq.${_assignOrderId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: { status: 'sent', driver_id: driverId }
+    });
+    toast('✅ Заказ отправлен, водитель назначен', 's');
+    closeM('m-assign-driver');
+    loadOrders();
+  } catch(e) {
+    toast('Ошибка', 'e');
   }
 }
 </script>

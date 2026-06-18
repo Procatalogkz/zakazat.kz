@@ -521,6 +521,23 @@
         opacity: 0.48;
         filter: drop-shadow(0 2px 8px rgba(0,0,0,0.05));
       }
+
+      .btn-cabinet {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #0066cc;
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .btn-cabinet:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -530,7 +547,10 @@
   </div>
   <div class="container">
     <div class="header">
-      <div class="logo">🛍 Каталог</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="logo">🛍 Каталог</div>
+        <div id="cabinet-btn-wrap"></div>
+      </div>
     </div>
 
     <!-- Фильтры -->
@@ -639,15 +659,23 @@ const CLOUDINARY_PRESET = 'ml_default';
     // Проверка авторизации покупателя
     const buyerRaw = sessionStorage.getItem('buyer');
     const currentBuyer = buyerRaw ? JSON.parse(buyerRaw) : null;
+
     // Если нет — не редиректим, каталог доступен всем, но заказ потребует входа
 
+    // Кнопка личного кабинета
+    const cabinetWrap = document.getElementById('cabinet-btn-wrap');
+    if (cabinetWrap) {
     if (currentBuyer) {
-      const header = document.querySelector('.header');
-      const ordersBtn = document.createElement('a');
-      ordersBtn.href = 'orders.html';
-      ordersBtn.style.cssText = 'font-size:13px;color:#0066cc;font-weight:600;text-decoration:none;white-space:nowrap;display:block;margin-top:4px;cursor:pointer';
-      ordersBtn.textContent = '📋 Мои заказы';
-      header.appendChild(ordersBtn);
+      cabinetWrap.innerHTML = `
+        <a href="orders.html" class="btn-cabinet">
+          👤 Личный кабинет
+        </a>`;
+    } else {
+        cabinetWrap.innerHTML = `
+          <a href="login.html" class="btn-cabinet" style="background:#f5f5f7;color:#0066cc;border:1.5px solid #0066cc">
+            Войти
+          </a>`;
+      }
     }
 
     // Загрузка данных
@@ -969,6 +997,29 @@ const CLOUDINARY_PRESET = 'ml_default';
     // ════════ КОРЗИНА ════════
     let cart = {};
 
+    // Повтор заказа
+    const repeatCart = sessionStorage.getItem('repeat_cart');
+    if (repeatCart) {
+      sessionStorage.removeItem('repeat_cart');
+      try {
+        const items = JSON.parse(repeatCart);
+        items.forEach(i => {
+          cart[i.product_id] = {
+            id: i.product_id,
+            name: i.product_name,
+            qty: i.quantity || 1,
+            price_per_unit: i.price_per_unit || 0,
+            qty_per_pack: i.pack_qty || 1
+          };
+        });
+        // Открываем корзину после загрузки страницы
+        window.addEventListener('load', () => setTimeout(() => {
+          updateCartBadge();
+          openCart();
+        }, 1000));
+      } catch(e) { console.error('repeat_cart error:', e); }
+    }
+
     function cartCount() { return Object.values(cart).reduce((s,i) => s + i.qty, 0); }
     function cartTotal() { return Object.values(cart).reduce((s,i) => s + i.price_per_unit * i.qty_per_pack * i.qty, 0); }
 
@@ -1111,14 +1162,15 @@ ${baseUrl}`;
         cart = {};
         updateCartBadge();
         closeCart();
-        alert('✅ Ваш заказ принят!\nДоставим как можно скорее.');
+        sessionStorage.setItem('order_success', '1');
+        window.location.href = 'orders.html';
       } catch(e) {
         console.error(e);
-        // order_items могли не сохраниться, но заказ принят
         cart = {};
         updateCartBadge();
         closeCart();
-        alert('✅ Ваш заказ принят!\nДоставим как можно скорее.');
+        sessionStorage.setItem('order_success', '1');
+        window.location.href = 'orders.html';
       }
     }
 
