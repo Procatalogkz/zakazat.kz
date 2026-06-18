@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мои заказы — TradeFlow</title>
+  <title>Личный кабинет — TradeFlow</title>
   <style>
     :root {
       --bg: #f5f5f7;
@@ -11,7 +11,7 @@
       --accent: #0066cc;
       --text: #1d1d1f;
       --muted: #86868b;
-      --radius: 12px;
+      --radius: 14px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -19,157 +19,205 @@
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
+      padding-bottom: 40px;
     }
 
-    /* Шапка */
     .header {
-      background: var(--card);
-      border-bottom: 1px solid #e0e0e5;
-      padding: 16px 20px;
+      background: var(--accent);
+      padding: 16px 16px 24px;
+      color: #fff;
+    }
+    .header-top {
       display: flex;
       align-items: center;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      gap: 10px;
     }
-    .header-back {
-      font-size: 22px;
+    .btn-back {
+      font-size: 24px;
+      color: #fff;
       text-decoration: none;
-      color: var(--accent);
+      line-height: 1;
     }
-    .header-title {
-      flex: 1;
-    }
-    .header-title h1 {
-      font-size: 18px;
-      font-weight: 700;
-    }
-    .header-title p {
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .header-top h1 { font-size: 18px; font-weight: 700; }
     .btn-logout {
+      margin-left: auto;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
       font-size: 13px;
-      color: var(--muted);
-      background: none;
-      border: 1px solid #e0e0e5;
-      border-radius: 8px;
-      padding: 6px 12px;
+      font-weight: 600;
       cursor: pointer;
     }
-    .btn-logout:hover { border-color: #aaa; }
 
-    /* Контент */
-    .content {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px 16px;
+    .profile-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      margin: -12px 16px 0;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .profile-avatar {
+      width: 56px; height: 56px;
+      background: #e8f0fb;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      margin-bottom: 12px;
+    }
+    .profile-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .profile-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; color: var(--muted); margin-top: 6px;
+    }
+    .btn-edit {
+      margin-top: 16px; width: 100%;
+      padding: 11px;
+      background: #f0f5ff; color: var(--accent);
+      border: 1.5px solid #cce0ff;
+      border-radius: 10px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
     }
 
-    /* Карточка заказа */
+    .section { margin: 20px 16px 0; }
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+
     .order-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 12px;
+      padding: 16px; margin-bottom: 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
-    .order-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
+    .order-card-head {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 10px;
     }
-    .order-id {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .order-date {
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .order-num { font-size: 13px; font-weight: 700; }
+    .order-date-txt { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    /* Статусы */
     .status-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
     }
-    .status-new      { background: #fff3cd; color: #856404; }
-    .status-sent     { background: #cfe2ff; color: #0a58ca; }
-    .status-delivered{ background: #d1e7dd; color: #146c43; }
+    .status-new       { background: #fff3cd; color: #856404; }
+    .status-sent      { background: #cfe2ff; color: #0a58ca; }
+    .status-delivered { background: #d1e7dd; color: #146c43; }
 
-    .order-total {
-      font-size: 18px;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    /* Позиции */
-    .order-items-list {
-      border-top: 1px solid #f0f0f3;
-      padding-top: 10px;
-    }
+    .order-items-wrap { border-top: 1px solid #f0f0f3; padding-top: 10px; }
     .order-item-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      padding: 4px 0;
-      color: var(--text);
+      display: flex; justify-content: space-between;
+      font-size: 13px; padding: 3px 0;
     }
-    .order-item-row span:last-child {
-      font-weight: 600;
-      white-space: nowrap;
-      margin-left: 8px;
-    }
-
-    /* Пустое состояние */
-    .empty {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-    }
-    .empty .icon { font-size: 48px; margin-bottom: 12px; }
-    .empty p { font-size: 16px; margin-bottom: 20px; }
-    .btn-catalog {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      text-decoration: none;
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 15px;
+    .order-item-row b { white-space: nowrap; margin-left: 8px; }
+    .order-total-row {
+      display: flex; justify-content: space-between;
+      font-size: 15px; font-weight: 800;
+      padding-top: 10px; margin-top: 8px;
+      border-top: 1px solid #f0f0f3;
     }
 
-    /* Загрузка */
-    .loading {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-      font-size: 16px;
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty .icon { font-size: 40px; margin-bottom: 10px; }
+    .btn-to-catalog {
+      display: inline-block; margin-top: 16px;
+      background: var(--accent); color: #fff;
+      text-decoration: none; padding: 12px 24px;
+      border-radius: 10px; font-weight: 700; font-size: 15px;
     }
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+
+    /* Модалка снизу */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-sheet {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 40px;
+      width: 100%; max-width: 500px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%; padding: 13px 14px;
+      border: 1.5px solid #e0e0e5; border-radius: 10px;
+      font-size: 16px; outline: none;
+      background: #fafafa; color: var(--text);
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: var(--accent); background: #fff; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel {
+      flex: 1; padding: 13px;
+      background: #f5f5f7; color: var(--text);
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .btn-save {
+      flex: 2; padding: 13px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .btn-save:disabled { opacity: 0.5; }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <a href="catalog.html" class="header-back">←</a>
-    <div class="header-title">
-      <h1>Мои заказы</h1>
-      <p id="buyer-name">—</p>
+    <div class="header-top">
+      <a href="catalog.html" class="btn-back">←</a>
+      <h1>Личный кабинет</h1>
+      <button class="btn-logout" onclick="logout()">Выйти</button>
     </div>
-    <button class="btn-logout" onclick="logout()">Выйти</button>
   </div>
 
-  <div class="content">
-    <div class="loading" id="loading">Загружаем заказы...</div>
-    <div id="orders-list"></div>
+  <div class="profile-card" id="profile-card">
+    <div class="loading">Загрузка...</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">История заказов</div>
+    <div id="orders-list"><div class="loading">Загрузка заказов...</div></div>
+  </div>
+
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-sheet">
+      <div class="modal-title">Редактировать профиль</div>
+      <div class="form-group">
+        <label>Название магазина</label>
+        <input type="text" id="edit-name" placeholder="Магазин «Фирдаус»">
+      </div>
+      <div class="form-group">
+        <label>Адрес магазина</label>
+        <input type="text" id="edit-address" placeholder="ул. Абая 10, Алматы">
+      </div>
+      <div class="form-group">
+        <label>Номер телефона</label>
+        <input type="tel" id="edit-phone" placeholder="+7 700 000 00 00">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEdit()">Отмена</button>
+        <button class="btn-save" id="btn-save" onclick="saveProfile()">Сохранить</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -194,15 +242,65 @@
       });
     };
 
-    // Проверка авторизации
     const buyerRaw = sessionStorage.getItem('buyer');
     if (!buyerRaw) { window.location.href = 'login.html'; }
-    const buyer = JSON.parse(buyerRaw);
-    document.getElementById('buyer-name').textContent = buyer.shop_name || buyer.phone;
+    let buyer = JSON.parse(buyerRaw);
 
     function logout() {
       sessionStorage.removeItem('buyer');
       window.location.href = 'login.html';
+    }
+
+    function renderProfile() {
+      document.getElementById('profile-card').innerHTML = `
+        <div class="profile-avatar">🏪</div>
+        <div class="profile-name">${buyer.shop_name || '—'}</div>
+        <div class="profile-row"><span>📞</span> ${buyer.phone}</div>
+        <div class="profile-row"><span>📍</span> ${buyer.address || 'Адрес не указан'}</div>
+        <button class="btn-edit" onclick="openEdit()">✏️ Редактировать профиль</button>
+      `;
+    }
+
+    function openEdit() {
+      document.getElementById('edit-name').value = buyer.shop_name || '';
+      document.getElementById('edit-address').value = buyer.address || '';
+      document.getElementById('edit-phone').value = buyer.phone || '';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+
+    function closeEdit() {
+      document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    document.getElementById('edit-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeEdit();
+    });
+
+    async function saveProfile() {
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+      btn.textContent = 'Сохраняем...';
+
+      const shop_name = document.getElementById('edit-name').value.trim();
+      const address   = document.getElementById('edit-address').value.trim();
+      const phone     = document.getElementById('edit-phone').value.trim();
+
+      try {
+        await API(`buyers?id=eq.${buyer.id}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: { shop_name, address, phone }
+        });
+        buyer = { ...buyer, shop_name, address, phone };
+        sessionStorage.setItem('buyer', JSON.stringify(buyer));
+        renderProfile();
+        closeEdit();
+      } catch(e) {
+        alert('Ошибка сохранения. Попробуйте ещё раз.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Сохранить';
+      }
     }
 
     const STATUS_LABELS = {
@@ -211,72 +309,69 @@
       delivered: { label: 'Доставлен', cls: 'status-delivered' }
     };
 
-    function formatDate(iso) {
-      const d = new Date(iso);
-      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    }
-
     async function loadOrders() {
       try {
         const orders = await API(
           `orders?buyer_id=eq.${buyer.id}&order=created_at.desc&select=id,status,total_price,created_at`
         );
-
-        document.getElementById('loading').style.display = 'none';
         const container = document.getElementById('orders-list');
 
         if (!orders.length) {
           container.innerHTML = `
             <div class="empty">
               <div class="icon">🛒</div>
-              <p>У вас пока нет заказов</p>
-              <a href="catalog.html" class="btn-catalog">Перейти в каталог</a>
+              <p>Заказов пока нет</p>
+              <a href="catalog.html" class="btn-to-catalog">Перейти в каталог</a>
             </div>`;
           return;
         }
 
-        // Загружаем позиции для всех заказов
-        const orderIds = orders.map(o => o.id);
+        const ids = orders.map(o => o.id);
         const items = await API(
-          `order_items?order_id=in.(${orderIds.join(',')})&select=order_id,product_name,quantity,total_price`
+          `order_items?order_id=in.(${ids.join(',')})&select=order_id,product_name,quantity,total_price`
         );
-
-        // Группируем позиции по order_id
-        const itemsByOrder = {};
+        const byOrder = {};
         items.forEach(i => {
-          if (!itemsByOrder[i.order_id]) itemsByOrder[i.order_id] = [];
-          itemsByOrder[i.order_id].push(i);
+          if (!byOrder[i.order_id]) byOrder[i.order_id] = [];
+          byOrder[i.order_id].push(i);
         });
 
         container.innerHTML = orders.map(order => {
-          const st = STATUS_LABELS[order.status] || { label: order.status, cls: 'status-new' };
-          const orderItems = itemsByOrder[order.id] || [];
+          const st = STATUS_LABELS[order.status] || STATUS_LABELS.new;
+          const rows = byOrder[order.id] || [];
+          const d = new Date(order.created_at).toLocaleDateString('ru-RU', {
+            day: 'numeric', month: 'long', year: 'numeric'
+          });
           return `
             <div class="order-card">
-              <div class="order-header">
+              <div class="order-card-head">
                 <div>
-                  <div class="order-id">Заказ #${order.id.slice(0,8).toUpperCase()}</div>
-                  <div class="order-date">${formatDate(order.created_at)}</div>
+                  <div class="order-num">Заказ #${order.id.slice(0,8).toUpperCase()}</div>
+                  <div class="order-date-txt">${d}</div>
                 </div>
                 <span class="status-badge ${st.cls}">${st.label}</span>
               </div>
-              <div class="order-total">${(order.total_price||0).toLocaleString()} ₸</div>
-              <div class="order-items-list">
-                ${orderItems.map(i => `
+              <div class="order-items-wrap">
+                ${rows.map(i => `
                   <div class="order-item-row">
                     <span>${i.product_name} × ${i.quantity} уп.</span>
-                    <span>${(i.total_price||0).toLocaleString()} ₸</span>
+                    <b>${(i.total_price||0).toLocaleString()} ₸</b>
                   </div>`).join('')}
+                <div class="order-total-row">
+                  <span>Итого</span>
+                  <span>${(order.total_price||0).toLocaleString()} ₸</span>
+                </div>
               </div>
             </div>`;
         }).join('');
 
       } catch(e) {
-        console.error(e);
-        document.getElementById('loading').textContent = 'Ошибка загрузки. Обновите страницу.';
+        document.getElementById('orders-list').innerHTML =
+          '<div class="loading">Ошибка загрузки заказов</div>';
       }
     }
 
+    renderProfile();
     loadOrders();
   </script>
 </body>

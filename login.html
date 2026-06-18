@@ -161,6 +161,16 @@
       >
     </div>
 
+    <div class="form-group" id="address-group" style="display:none">
+      <label>Адрес магазина</label>
+      <input
+        type="text"
+        id="shop-address"
+        placeholder="ул. Абая 10, Алматы"
+        autocomplete="street-address"
+      >
+    </div>
+
     <div class="error-msg" id="error-msg"></div>
 
     <button class="btn-primary" id="btn-login" onclick="handleLogin()">
@@ -255,6 +265,7 @@
           // Новый — показываем поле "название магазина"
           isNewUser = true;
           document.getElementById('shop-name-group').style.display = 'block';
+          document.getElementById('address-group').style.display = 'block';
           document.getElementById('shop-name').focus();
           setLoading(false);
           document.getElementById('btn-login').innerHTML = 'Зарегистрироваться и войти';
@@ -264,11 +275,12 @@
           // Регистрируем нового
           const shopName = document.getElementById('shop-name').value.trim();
           if (!shopName) { showError('Введите название магазина'); setLoading(false); return; }
+          const address = document.getElementById('shop-address').value.trim();
 
           const [newBuyer] = await API('buyers', {
             method: 'POST',
             headers: { 'Prefer': 'return=representation' },
-            body: { phone, shop_name: shopName }
+            body: { phone, shop_name: shopName, address }
           });
 
           sessionStorage.setItem('buyer', JSON.stringify(newBuyer));
