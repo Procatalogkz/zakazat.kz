@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeFlow — Вход</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --accent: #0066cc;
+      --text: #1d1d1f;
+      --muted: #86868b;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .tagline {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e0e0e5;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafafa;
+      color: var(--text);
+    }
+    input:focus { border-color: var(--accent); background: #fff; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      background: #fff0f0;
+      border: 1px solid #ffcdd2;
+      color: #c62828;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      margin-top: 12px;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .hint {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    /* Состояние загрузки */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="logo">TradeFlow</div>
+    <div class="tagline">Оптовый каталог</div>
+
+    <h2>Вход для магазинов</h2>
+
+    <div class="form-group">
+      <label>Номер телефона</label>
+      <input
+        type="tel"
+        id="phone"
+        placeholder="+7 700 000 00 00"
+        autocomplete="tel"
+        inputmode="tel"
+      >
+    </div>
+
+    <div class="form-group" id="shop-name-group" style="display:none">
+      <label>Название магазина</label>
+      <input
+        type="text"
+        id="shop-name"
+        placeholder="Магазин «Фирдаус»"
+        autocomplete="organization"
+      >
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <button class="btn-primary" id="btn-login" onclick="handleLogin()">
+      Войти
+    </button>
+
+    <div class="hint">
+      Введите номер телефона.<br>
+      Если вы новый покупатель — укажите название магазина.
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://xhcteinsgmrlpyijkhdb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_h6M-sNlKmmeW8xrQeW4EtA_LjTBDn-d';
+
+    const API = (endpoint, options = {}) => {
+      const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+      const headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        ...(options.headers || {})
+      };
+      if (options.body && typeof options.body === 'object') {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+      }
+      return fetch(url, { ...options, headers }).then(async res => {
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Supabase error ${res.status}: ${err}`);
+        }
+        if (res.status === 204) return null;
+        return res.json();
+      });
+    };
+
+    // Нормализация номера: убираем всё кроме цифр и +
+    function normalizePhone(raw) {
+      let cleaned = raw.replace(/[^\d+]/g, '');
+      // 87001234567 → +77001234567
+      if (cleaned.startsWith('8') && cleaned.length === 11) {
+        cleaned = '+7' + cleaned.slice(1);
+      }
+      // 77001234567 → +77001234567
+      if (!cleaned.startsWith('+') && cleaned.length === 11) {
+        cleaned = '+' + cleaned;
+      }
+      return cleaned;
+    }
+
+    let isNewUser = false;
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-msg').classList.remove('show');
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('btn-login');
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<span class="spinner"></span>Проверяем...'
+        : (isNewUser ? 'Зарегистрироваться и войти' : 'Войти');
+    }
+
+    async function handleLogin() {
+      hideError();
+      const rawPhone = document.getElementById('phone').value.trim();
+      if (!rawPhone) { showError('Введите номер телефона'); return; }
+
+      const phone = normalizePhone(rawPhone);
+      if (phone.length < 11) { showError('Неверный формат номера'); return; }
+
+      setLoading(true);
+
+      try {
+        // Ищем покупателя по номеру
+        const existing = await API(`buyers?phone=eq.${encodeURIComponent(phone)}&select=id,phone,shop_name`);
+
+        if (existing && existing.length > 0) {
+          // Известный покупатель — сразу входим
+          const buyer = existing[0];
+          sessionStorage.setItem('buyer', JSON.stringify(buyer));
+          window.location.href = 'catalog.html';
+
+        } else if (!isNewUser) {
+          // Новый — показываем поле "название магазина"
+          isNewUser = true;
+          document.getElementById('shop-name-group').style.display = 'block';
+          document.getElementById('shop-name').focus();
+          setLoading(false);
+          document.getElementById('btn-login').innerHTML = 'Зарегистрироваться и войти';
+          showError('Номер не найден. Введите название магазина для регистрации.');
+
+        } else {
+          // Регистрируем нового
+          const shopName = document.getElementById('shop-name').value.trim();
+          if (!shopName) { showError('Введите название магазина'); setLoading(false); return; }
+
+          const [newBuyer] = await API('buyers', {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: { phone, shop_name: shopName }
+          });
+
+          sessionStorage.setItem('buyer', JSON.stringify(newBuyer));
+          window.location.href = 'catalog.html';
+        }
+
+      } catch(e) {
+        console.error(e);
+        showError('Ошибка соединения. Попробуйте ещё раз.');
+        setLoading(false);
+      }
+    }
+
+    // Enter для отправки
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    // Если уже залогинен — сразу в каталог
+    const existing = sessionStorage.getItem('buyer');
+    if (existing) window.location.href = 'catalog.html';
+  </script>
+</body>
+</html>

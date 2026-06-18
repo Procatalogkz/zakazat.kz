@@ -1,0 +1,988 @@
+html
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мои консигнации</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #f5f5f7;
+  --bg2:     #ffffff;
+  --bg3:     #f0f0f2;
+  --bg4:     #e8e8ea;
+  --border:  rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text:    #1d1d1f;
+  --muted:   #86868b;
+  --muted2:  #c7c7cc;
+  --accent:  #0066cc;
+  --accent2: #004fa3;
+  --green:   #27ae60;
+  --red:     #e05252;
+  --orange:  #e8a020;
+  --blue:    #5294e0;
+  --r:  10px;
+  --r2: 14px;
+  --r3: 20px;
+  --fh: 'Unbounded', sans-serif;
+  --fb: 'Golos Text', sans-serif;
+  --shadow: 0 2px 16px rgba(0,0,0,0.07);
+  --shadow2: 0 8px 32px rgba(0,0,0,0.12);
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; }
+
+/* ── LOGIN ── */
+#screen-login {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 999;
+  padding: 20px;
+}
+#screen-login.hide { display: none; }
+.login-card {
+  background: var(--bg2); border-radius: var(--r3);
+  box-shadow: var(--shadow2); padding: 40px 36px;
+  width: 100%; max-width: 400px; text-align: center;
+}
+.login-logo {
+  font-family: var(--fh); font-size: 11px; font-weight: 700;
+  color: var(--accent); letter-spacing: .08em; margin-bottom: 6px;
+}
+.login-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.login-sub   { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+
+/* Шаг 1 — выбор ТП */
+.rep-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 320px; overflow-y: auto; }
+.rep-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-radius: var(--r2);
+  border: 2px solid var(--border); background: var(--bg);
+  cursor: pointer; transition: all .15s; text-align: left;
+}
+.rep-btn:hover { border-color: var(--accent); background: rgba(0,102,204,.04); }
+.rep-btn.selected { border-color: var(--accent); background: rgba(0,102,204,.06); }
+.rep-btn-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.rep-btn-name { font-size: 14px; font-weight: 600; flex: 1; }
+
+/* Шаг 2 — PIN */
+.pin-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.pin-dots { display: flex; gap: 14px; }
+.pin-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--muted2); transition: background .15s; }
+.pin-dot.filled { background: var(--accent); }
+.pin-keyboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 240px; }
+.pin-key {
+  height: 60px; border-radius: var(--r2); border: 1.5px solid var(--border2);
+  background: var(--bg2); font-size: 20px; font-weight: 600; cursor: pointer;
+  transition: all .12s; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.pin-key:hover { background: var(--bg3); border-color: var(--accent); }
+.pin-key:active { transform: scale(.95); background: rgba(0,102,204,.08); }
+.pin-key.del { font-size: 16px; color: var(--muted); }
+.pin-err { color: var(--red); font-size: 13px; font-weight: 600; animation: shake .3s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* ── APP ── */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: sticky; top: 0; z-index: 100;
+  padding: 0 20px; height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-avatar { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.topbar-name { font-size: 14px; font-weight: 700; }
+.topbar-role { font-size: 11px; color: var(--muted); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* ── LIMIT BAR ── */
+.limit-bar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.limit-item { display: flex; flex-direction: column; gap: 2px; }
+.limit-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.limit-val { font-size: 14px; font-weight: 700; }
+.limit-progress { flex: 1; min-width: 120px; }
+.progress-wrap { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+
+/* ── CONTENT ── */
+.content { flex: 1; padding: 20px; max-width: 760px; margin: 0 auto; width: 100%; }
+
+/* ── SUMMARY CARDS ── */
+.summary-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+.sum-card { background: var(--bg2); border-radius: var(--r2); padding: 16px 18px; box-shadow: var(--shadow); }
+.sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-bottom: 6px; }
+.sum-val { font-family: var(--fh); font-size: 18px; font-weight: 700; line-height: 1; }
+.sum-val.cr { color: var(--red); }
+.sum-val.cg { color: var(--green); }
+.sum-val.cb { color: var(--accent); }
+
+/* ── MONTH GROUP ── */
+.month-group { margin-bottom: 24px; }
+.month-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 10px; padding-left: 2px;
+}
+
+/* ── CONSIGNMENT CARD ── */
+.cs-card {
+  background: var(--bg2); border-radius: var(--r2);
+  box-shadow: var(--shadow); margin-bottom: 10px;
+  border: 1.5px solid transparent; transition: border-color .15s;
+  overflow: hidden;
+}
+.cs-card.overdue { border-color: rgba(224,82,82,.3); }
+.cs-card.partial { border-color: rgba(232,160,32,.2); }
+.cs-card.paid    { opacity: .7; }
+
+.cs-card-head {
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: background .12s;
+}
+.cs-card-head:hover { background: var(--bg3); }
+.cs-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cs-store { font-size: 14px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-amount { font-family: var(--fh); font-size: 14px; font-weight: 700; white-space: nowrap; }
+.cs-arrow { color: var(--muted); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
+.cs-arrow.open { transform: rotate(90deg); }
+
+.cs-card-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+.cs-card-body.open { display: block; }
+
+.cs-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 14px; }
+.cs-meta-item {}
+.cs-meta-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 3px; }
+.cs-meta-val { font-size: 14px; font-weight: 600; }
+
+.cs-progress-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.cs-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+/* История платежей */
+.pay-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.pay-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg3); border-radius: var(--r); font-size: 13px; }
+.pay-date   { color: var(--muted); min-width: 80px; font-size: 12px; }
+.pay-amount { font-weight: 700; color: var(--green); white-space: nowrap; }
+.pay-note   { color: var(--muted); font-size: 12px; flex: 1; }
+.pay-del    { color: var(--muted2); cursor: pointer; font-size: 14px; padding: 2px 4px; border-radius: 4px; border: none; background: none; transition: color .12s; }
+.pay-del:hover { color: var(--red); }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 17px; border-radius: var(--r); border: 1.5px solid var(--border2); background: transparent; color: var(--text); font-family: var(--fb); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn:hover { background: var(--bg3); }
+.btn-primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-green { background: var(--green); color: #fff; border-color: transparent; font-weight: 600; }
+.btn-green:hover { background: #1e9b50; }
+.btn-ghost { border-color: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--text); background: var(--bg3); }
+.btn-danger { border-color: rgba(224,82,82,.25); color: var(--red); }
+.btn-danger:hover { background: rgba(224,82,82,.06); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-xs { padding: 4px 9px; font-size: 11px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  border: none; font-size: 26px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,102,204,.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; z-index: 90;
+}
+.fab:hover { background: var(--accent2); transform: scale(1.08); }
+.fab:active { transform: scale(.95); }
+
+/* ── FORMS ── */
+.fg { margin-bottom: 16px; }
+.fg:last-child { margin-bottom: 0; }
+.fg label { display: block; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+input[type=text], input[type=number], input[type=date], select, textarea {
+  width: 100%; background: var(--bg3); border: 1.5px solid var(--border2); border-radius: var(--r);
+  color: var(--text); font-family: var(--fb); font-size: 14px; padding: 10px 13px; outline: none; transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,102,204,.08); }
+input::placeholder { color: var(--muted2); }
+select option { background: #fff; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
+/* ── MODAL ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+.overlay.open { display: flex; }
+.modal { background: var(--bg2); border-radius: var(--r3); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,.2); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg2); z-index: 2; }
+.modal-title { font-family: var(--fh); font-size: 12px; font-weight: 700; }
+.modal-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1; padding: 0 4px; border-radius: 6px; }
+.modal-x:hover { background: var(--bg3); }
+.modal-body { padding: 22px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 22px; border-top: 1px solid var(--border); background: var(--bg2); position: sticky; bottom: 0; }
+
+/* ── STATUS BADGE ── */
+.sbadge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.sbadge-paid    { background: rgba(39,174,96,.1);  color: var(--green); }
+.sbadge-partial { background: rgba(232,160,32,.1); color: var(--orange); }
+.sbadge-overdue { background: rgba(224,82,82,.1);  color: var(--red); }
+.sbadge-active  { background: rgba(82,148,224,.1); color: var(--blue); }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-ico { font-size: 44px; margin-bottom: 14px; }
+.empty-t { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty-s { font-size: 13px; }
+
+/* ── TOASTS ── */
+.toast-wrap { position: fixed; bottom: 90px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--bg2); border: 1.5px solid var(--border2); border-radius: var(--r2); padding: 12px 18px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow2); min-width: 240px; animation: tIn .25s ease; }
+.toast.s { border-left: 3px solid var(--green); }
+.toast.e { border-left: 3px solid var(--red); }
+.toast.i { border-left: 3px solid var(--accent); }
+@keyframes tIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+hr.div { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── НОВАЯ КОНСИГНАЦИЯ — превью лимита ── */
+.limit-preview {
+  background: var(--bg3); border-radius: var(--r); padding: 12px 14px;
+  font-size: 13px; margin-top: 8px; display: none;
+}
+
+@media(max-width:520px) {
+  .summary-row { grid-template-columns: 1fr 1fr; }
+  .frow { grid-template-columns: 1fr; }
+  .limit-bar { gap: 10px; }
+  .topbar { padding: 0 14px; }
+  .content { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="screen-login">
+  <div class="login-card">
+    <div class="login-logo">CONSIGNMENTS</div>
+
+    <!-- Шаг 1: выбор ТП -->
+    <div id="step-select">
+      <div class="login-title">Выберите себя</div>
+      <div class="login-sub">Кто вы?</div>
+      <div class="rep-grid" id="rep-grid">
+        <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Загрузка...</div>
+      </div>
+      <div style="color:var(--red);font-size:13px;margin-bottom:10px;display:none" id="sel-err">Выберите себя из списка</div>
+      <button class="btn btn-primary btn-full" onclick="goToPin()">Далее →</button>
+    </div>
+
+    <!-- Шаг 2: PIN -->
+    <div id="step-pin" style="display:none">
+      <div class="login-title" id="pin-greeting">Привет!</div>
+      <div class="login-sub">Введите PIN-код</div>
+      <div class="pin-wrap">
+        <div class="pin-dots" id="pin-dots">
+          <div class="pin-dot" id="pd0"></div>
+          <div class="pin-dot" id="pd1"></div>
+          <div class="pin-dot" id="pd2"></div>
+          <div class="pin-dot" id="pd3"></div>
+        </div>
+        <div id="pin-err" class="pin-err" style="display:none">Неверный PIN</div>
+        <div class="pin-keyboard">
+          <button class="pin-key" onclick="pinKey('1')">1</button>
+          <button class="pin-key" onclick="pinKey('2')">2</button>
+          <button class="pin-key" onclick="pinKey('3')">3</button>
+          <button class="pin-key" onclick="pinKey('4')">4</button>
+          <button class="pin-key" onclick="pinKey('5')">5</button>
+          <button class="pin-key" onclick="pinKey('6')">6</button>
+          <button class="pin-key" onclick="pinKey('7')">7</button>
+          <button class="pin-key" onclick="pinKey('8')">8</button>
+          <button class="pin-key" onclick="pinKey('9')">9</button>
+          <button class="pin-key del" onclick="goBackToSelect()">←</button>
+          <button class="pin-key" onclick="pinKey('0')">0</button>
+          <button class="pin-key del" onclick="pinDel()">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-avatar" id="top-avatar">?</div>
+      <div>
+        <div class="topbar-name" id="top-name">—</div>
+        <div class="topbar-role">Торговый представитель</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">↩ Выйти</button>
+    </div>
+  </div>
+
+  <!-- LIMIT BAR -->
+  <div class="limit-bar" id="limit-bar" style="display:none">
+    <div class="limit-item">
+      <div class="limit-label">Долг</div>
+      <div class="limit-val cr" id="lb-debt">0 ₸</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-label">Лимит</div>
+      <div class="limit-val" id="lb-limit">0 ₸</div>
+    </div>
+    <div class="limit-progress">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px">
+        <span id="lb-pct">0%</span>
+        <span id="lb-free"></span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="lb-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="limit-item" id="lb-warn" style="display:none">
+      <span style="font-size:12px;font-weight:700;color:var(--red)">⚠️ ЛИМИТ ИСЧЕРПАН</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- Сводка -->
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="sum-label">Всего долг</div>
+        <div class="sum-val cr" id="s-total">—</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Просрочено</div>
+        <div class="sum-val cr" id="s-overdue">—</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Оплачено</div>
+        <div class="sum-val cg" id="s-paid">—</div>
+      </div>
+    </div>
+
+    <!-- Консигнации по месяцам -->
+    <div id="cs-list"></div>
+
+  </div>
+
+  <!-- FAB: добавить консигнацию -->
+  <button class="fab" onclick="openNewCs()" title="Новая консигнация">+</button>
+
+</div>
+
+<!-- ══ MODAL: НОВАЯ КОНСИГНАЦИЯ ══ -->
+<div class="overlay" id="m-new-cs">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Новая консигнация</div>
+      <button class="modal-x" onclick="closeM('m-new-cs')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Название магазина *</label>
+        <input type="text" id="cs-store" placeholder="Магазин «Арзан»">
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label>Дата отгрузки *</label>
+          <input type="date" id="cs-date">
+        </div>
+        <div class="fg">
+          <label>Дедлайн оплаты</label>
+          <input type="date" id="cs-deadline" readonly style="opacity:.7">
+          <div class="hint">Автоматически: отгрузка + 7 дней</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Сумма отгрузки (₸) *</label>
+        <input type="number" id="cs-amount" placeholder="0" min="0" oninput="updateLimitPreview()">
+      </div>
+
+      <!-- Превью лимита -->
+      <div class="limit-preview" id="limit-preview"></div>
+
+      <div class="fg">
+        <label>Заметка</label>
+        <input type="text" id="cs-notes" placeholder="Необязательно">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-new-cs')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveNewCs()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ДОБАВИТЬ ПЛАТЁЖ ══ -->
+<div class="overlay" id="m-payment">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-pay-title">Добавить платёж</div>
+      <button class="modal-x" onclick="closeM('m-payment')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pay-cs-id">
+      <div class="fg">
+        <label>Сумма платежа (₸) *</label>
+        <input type="number" id="pay-amount" placeholder="0" min="0">
+        <div class="hint" id="pay-hint"></div>
+      </div>
+      <div class="fg">
+        <label>Дата платежа *</label>
+        <input type="date" id="pay-date">
+      </div>
+      <div class="fg">
+        <label>Заметка</label>
+        <input type="text" id="pay-notes" placeholder="Необязательно">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-payment')">Отмена</button>
+      <button class="btn btn-green" onclick="savePayment()">+ Записать платёж</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ПОДТВЕРЖДЕНИЕ ══ -->
+<div class="overlay" id="m-confirm">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head"><div class="modal-title">Подтверждение</div><button class="modal-x" onclick="closeM('m-confirm')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px" id="confirm-msg"></div>
+      <div style="font-size:13px;color:var(--muted)" id="confirm-sub"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-confirm')">Отмена</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+const SUPABASE_URL      = 'https://xhcteinsgmrlpyijkhdb.supabase.co';
+const SUPABASE_KEY      = 'sb_publishable_h6M-sNlKmmeW8xrQeW4EtA_LjTBDn-d';
+
+// ════════════════════════════════════════
+// API
+// ════════════════════════════════════════
+const API = (ep, opts = {}) => {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...(opts.headers || {})
+  };
+  if (opts.body && typeof opts.body === 'object') opts.body = JSON.stringify(opts.body);
+  return fetch(`${SUPABASE_URL}/rest/v1/${ep}`, { ...opts, headers }).then(async r => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    if (r.status === 204) return null;
+    return r.json();
+  });
+};
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let allReps       = [];
+let currentRep    = null;
+let myConsign     = [];
+let myPayments    = [];
+let pinBuffer     = '';
+let selectedRepId = null;
+
+// ════════════════════════════════════════
+// INIT — загружаем список ТП для логина
+// ════════════════════════════════════════
+async function init() {
+  try {
+    allReps = await API('reps?order=name&select=id,name,color,pin,credit_limit');
+    renderRepGrid();
+  } catch(e) {
+    document.getElementById('rep-grid').innerHTML =
+      `<div style="color:var(--red);font-size:13px;padding:16px">Ошибка загрузки: ${e.message}</div>`;
+  }
+}
+
+function renderRepGrid() {
+  const el = document.getElementById('rep-grid');
+  if (!allReps.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center">Нет торговых представителей.<br>Обратитесь к супервайзеру.</div>`;
+    return;
+  }
+  el.innerHTML = allReps.map(r => `
+    <div class="rep-btn ${selectedRepId===r.id?'selected':''}" onclick="selectRep('${r.id}')">
+      <div class="rep-btn-dot" style="background:${r.color||'#888'}"></div>
+      <div class="rep-btn-name">${r.name}</div>
+      ${selectedRepId===r.id ? '<span style="color:var(--accent);font-size:16px">✓</span>' : ''}
+    </div>`).join('');
+}
+
+function selectRep(id) {
+  selectedRepId = id;
+  renderRepGrid();
+  document.getElementById('sel-err').style.display = 'none';
+}
+
+function goToPin() {
+  if (!selectedRepId) { document.getElementById('sel-err').style.display = 'block'; return; }
+  const rep = allReps.find(r => r.id === selectedRepId);
+  document.getElementById('pin-greeting').textContent = `Привет, ${rep.name.split(' ')[0]}!`;
+  document.getElementById('step-select').style.display = 'none';
+  document.getElementById('step-pin').style.display = '';
+  pinBuffer = '';
+  updatePinDots();
+}
+
+function goBackToSelect() {
+  document.getElementById('step-pin').style.display = 'none';
+  document.getElementById('step-select').style.display = '';
+  document.getElementById('pin-err').style.display = 'none';
+  pinBuffer = '';
+  updatePinDots();
+}
+
+// ════════════════════════════════════════
+// PIN LOGIC
+// ════════════════════════════════════════
+function pinKey(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  document.getElementById('pin-err').style.display = 'none';
+  if (pinBuffer.length === 4) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('pd'+i).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function checkPin() {
+  const rep = allReps.find(r => r.id === selectedRepId);
+  if (String(rep.pin) === String(pinBuffer)) {
+    currentRep = rep;
+    loginSuccess();
+  } else {
+    const err = document.getElementById('pin-err');
+    err.style.display = 'block';
+    err.style.animation = 'none';
+    void err.offsetWidth;
+    err.style.animation = 'shake .3s ease';
+    pinBuffer = '';
+    updatePinDots();
+  }
+}
+
+function loginSuccess() {
+  document.getElementById('screen-login').classList.add('hide');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+
+  // Топбар
+  const initials = currentRep.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const av = document.getElementById('top-avatar');
+  av.textContent  = initials;
+  av.style.background = currentRep.color || '#0066cc';
+  document.getElementById('top-name').textContent = currentRep.name;
+
+  loadMyData();
+}
+
+function doLogout() {
+  currentRep = null; selectedRepId = null; pinBuffer = '';
+  myConsign = []; myPayments = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-login').classList.remove('hide');
+  document.getElementById('step-pin').style.display = 'none';
+  document.getElementById('step-select').style.display = '';
+  renderRepGrid();
+}
+
+// ════════════════════════════════════════
+// LOAD DATA
+// ════════════════════════════════════════
+async function loadMyData() {
+  try {
+    const [csData, payData] = await Promise.all([
+      API(`consignments?rep_id=eq.${currentRep.id}&order=shipped_at.desc`),
+      API(`consignment_payments?order=paid_at.desc`)
+    ]);
+    myConsign   = csData  || [];
+    // Фильтруем платежи только по моим консигнациям
+    const myIds = new Set(myConsign.map(c => c.id));
+    myPayments  = (payData || []).filter(p => myIds.has(p.consignment_id));
+    renderAll();
+  } catch(e) {
+    toast('Ошибка загрузки: ' + e.message, 'e');
+  }
+}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function getPaid(csId) {
+  return myPayments.filter(p => p.consignment_id === csId).reduce((s,p) => s + Number(p.amount), 0);
+}
+
+function getStatus(cs) {
+  const paid    = getPaid(cs.id);
+  const rest    = Number(cs.amount) - paid;
+  const overdue = cs.deadline_at && new Date(cs.deadline_at) < new Date(new Date().toDateString());
+  if (rest <= 0) return 'paid';
+  if (overdue)   return 'overdue';
+  if (paid > 0)  return 'partial';
+  return 'active';
+}
+
+const STATUS_DOT = { paid:'#27ae60', overdue:'#e05252', partial:'#e8a020', active:'#5294e0' };
+const STATUS_LABEL = { paid:'✅ Оплачена', overdue:'🔴 Просрочена', partial:'🟡 Частично', active:'🔵 Активная' };
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' });
+}
+function fmtMoney(n) { return Number(n||0).toLocaleString('ru-RU') + ' ₸'; }
+
+function daysLeft(dl) {
+  if (!dl) return null;
+  return Math.ceil((new Date(dl) - new Date(new Date().toDateString())) / 86400000);
+}
+
+// ════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════
+function renderAll() {
+  renderLimitBar();
+  renderSummary();
+  renderCsList();
+}
+
+function renderLimitBar() {
+  const limit = Number(currentRep.credit_limit || 0);
+  if (!limit) { document.getElementById('limit-bar').style.display = 'none'; return; }
+
+  let debt = 0;
+  myConsign.forEach(cs => {
+    const rest = Number(cs.amount) - getPaid(cs.id);
+    if (rest > 0) debt += rest;
+  });
+
+  const pct  = Math.min(100, Math.round(debt / limit * 100));
+  const free = Math.max(0, limit - debt);
+  const barColor = debt >= limit ? 'var(--red)' : pct > 80 ? 'var(--orange)' : 'var(--green)';
+
+  document.getElementById('limit-bar').style.display = '';
+  document.getElementById('lb-debt').textContent  = fmtMoney(debt);
+  document.getElementById('lb-limit').textContent = fmtMoney(limit);
+  document.getElementById('lb-pct').textContent   = pct + '%';
+  document.getElementById('lb-free').textContent  = 'Свободно: ' + fmtMoney(free);
+  document.getElementById('lb-bar').style.width   = pct + '%';
+  document.getElementById('lb-bar').style.background = barColor;
+  document.getElementById('lb-warn').style.display = debt >= limit ? '' : 'none';
+}
+
+function renderSummary() {
+  let totalDebt = 0, overdueDebt = 0, totalPaid = 0;
+  myConsign.forEach(cs => {
+    const paid = getPaid(cs.id);
+    const rest = Number(cs.amount) - paid;
+    totalPaid += paid;
+    if (rest > 0) totalDebt += rest;
+    if (getStatus(cs) === 'overdue') overdueDebt += rest;
+  });
+  document.getElementById('s-total').textContent   = fmtMoney(totalDebt);
+  document.getElementById('s-overdue').textContent = fmtMoney(overdueDebt);
+  document.getElementById('s-paid').textContent    = fmtMoney(totalPaid);
+}
+
+function renderCsList() {
+  const el = document.getElementById('cs-list');
+  if (!myConsign.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">📦</div><div class="empty-t">Нет консигнаций</div><div class="empty-s">Нажмите + чтобы добавить первую</div></div>`;
+    return;
+  }
+
+  // Группируем по месяцу отгрузки
+  const groups = {};
+  myConsign.forEach(cs => {
+    const d   = new Date(cs.shipped_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    if (!groups[key]) groups[key] = { label: lbl, items: [] };
+    groups[key].items.push(cs);
+  });
+
+  el.innerHTML = Object.keys(groups).sort().reverse().map(key => {
+    const g = groups[key];
+    return `<div class="month-group">
+      <div class="month-label">${g.label}</div>
+      ${g.items.map(cs => renderCsCard(cs)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderCsCard(cs) {
+  const paid = getPaid(cs.id);
+  const rest = Number(cs.amount) - paid;
+  const pct  = Math.min(100, Math.round(paid / Number(cs.amount) * 100));
+  const st   = getStatus(cs);
+  const dl   = daysLeft(cs.deadline_at);
+  const pays = myPayments.filter(p => p.consignment_id === cs.id).sort((a,b) => new Date(a.paid_at)-new Date(b.paid_at));
+
+  const dlText = st === 'paid' ? '' :
+    dl < 0  ? `просрочено на ${Math.abs(dl)} дн.` :
+    dl === 0 ? 'сегодня!' :
+    `${dl} дн. до дедлайна`;
+
+  const barColor = st === 'paid' ? 'var(--green)' : st === 'overdue' ? 'var(--red)' : 'var(--orange)';
+
+  return `<div class="cs-card ${st}" id="csc-${cs.id}">
+    <div class="cs-card-head" onclick="toggleCs('${cs.id}')">
+      <div class="cs-status-dot" style="background:${STATUS_DOT[st]}"></div>
+      <div class="cs-store">${cs.store_name}</div>
+      <div class="cs-amount" style="color:${rest>0?'var(--red)':'var(--green)'}">${fmtMoney(rest > 0 ? rest : Number(cs.amount))}</div>
+      <div class="cs-arrow" id="csa-${cs.id}">▶</div>
+    </div>
+    <div class="cs-card-body" id="csb-${cs.id}">
+      <div class="cs-meta">
+        <div class="cs-meta-item">
+          <div class="cs-meta-label">Отгрузка</div>
+          <div class="cs-meta-val">${fmtDate(cs.shipped_at)}</div>
+        </div>
+        <div class="cs-meta-item">
+          <div class="cs-meta-label">Дедлайн</div>
+          <div class="cs-meta-val" style="color:${st==='overdue'?'var(--red)':dl!==null&&dl<=3?'var(--orange)':'var(--text)'}">${fmtDate(cs.deadline_at)}</div>
+        </div>
+        <div class="cs-meta-item">
+          <div class="cs-meta-label">Сумма</div>
+          <div class="cs-meta-val">${fmtMoney(cs.amount)}</div>
+        </div>
+        <div class="cs-meta-item">
+          <div class="cs-meta-label">Статус</div>
+          <div class="cs-meta-val">${STATUS_LABEL[st]}</div>
+        </div>
+      </div>
+      ${dlText ? `<div style="font-size:12px;color:${st==='overdue'?'var(--red)':'var(--orange)'};font-weight:600;margin-bottom:10px">⏰ ${dlText}</div>` : ''}
+      ${cs.notes ? `<div style="font-size:12px;color:var(--muted);margin-bottom:10px">📝 ${cs.notes}</div>` : ''}
+
+      <div class="cs-progress-row">
+        <span>Оплачено: ${fmtMoney(paid)}</span>
+        <span>${pct}%</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" style="width:${pct}%;background:${barColor}"></div>
+      </div>
+
+      ${pays.length ? `
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px">История платежей</div>
+        <div class="pay-list">
+          ${pays.map(p => `
+            <div class="pay-item">
+              <span class="pay-date">${fmtDate(p.paid_at)}</span>
+              <span class="pay-amount">+${fmtMoney(p.amount)}</span>
+              <span class="pay-note">${p.notes||''}</span>
+              <button class="pay-del" onclick="confirmDeletePay('${p.id}','${cs.id}')" title="Удалить платёж">✕</button>
+            </div>`).join('')}
+        </div>` : ''}
+
+      <div class="cs-actions">
+        ${st !== 'paid' ? `<button class="btn btn-green btn-sm" onclick="openPayment('${cs.id}','${cs.store_name}',${rest})">+ Платёж</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCs(id) {
+  const body  = document.getElementById('csb-' + id);
+  const arrow = document.getElementById('csa-' + id);
+  const open  = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  arrow.classList.toggle('open', !open);
+}
+
+// ════════════════════════════════════════
+// НОВАЯ КОНСИГНАЦИЯ
+// ════════════════════════════════════════
+function openNewCs() {
+  const today    = new Date().toISOString().slice(0,10);
+  const deadline = new Date(); deadline.setDate(deadline.getDate() + 7);
+  document.getElementById('cs-store').value    = '';
+  document.getElementById('cs-date').value     = today;
+  document.getElementById('cs-deadline').value = deadline.toISOString().slice(0,10);
+  document.getElementById('cs-amount').value   = '';
+  document.getElementById('cs-notes').value    = '';
+  document.getElementById('limit-preview').style.display = 'none';
+
+  // При смене даты — пересчитываем дедлайн
+  document.getElementById('cs-date').onchange = function() {
+    const d = new Date(this.value); d.setDate(d.getDate() + 7);
+    document.getElementById('cs-deadline').value = d.toISOString().slice(0,10);
+  };
+
+  openM('m-new-cs');
+  setTimeout(() => document.getElementById('cs-store').focus(), 80);
+}
+
+function updateLimitPreview() {
+  const limit = Number(currentRep.credit_limit || 0);
+  if (!limit) return;
+
+  const newAmount = parseFloat(document.getElementById('cs-amount').value) || 0;
+  let currentDebt = 0;
+  myConsign.forEach(cs => {
+    const rest = Number(cs.amount) - getPaid(cs.id);
+    if (rest > 0) currentDebt += rest;
+  });
+
+  const afterDebt = currentDebt + newAmount;
+  const pct  = Math.min(100, Math.round(afterDebt / limit * 100));
+  const free  = Math.max(0, limit - afterDebt);
+  const over  = afterDebt > limit;
+
+  const el = document.getElementById('limit-preview');
+  el.style.display = newAmount > 0 ? '' : 'none';
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+      <span style="color:var(--muted)">После добавления</span>
+      <span style="font-weight:700;color:${over?'var(--red)':'var(--text)'}">${pct}% лимита</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" style="width:${pct}%;background:${over?'var(--red)':pct>80?'var(--orange)':'var(--green)'}"></div>
+    </div>
+    <div style="font-size:12px;margin-top:6px;color:${over?'var(--red)':'var(--muted)'}">
+      ${over ? `⚠️ Превышение лимита на ${fmtMoney(afterDebt - limit)}` : `Свободно: ${fmtMoney(free)}`}
+    </div>`;
+}
+
+async function saveNewCs() {
+  const store    = document.getElementById('cs-store').value.trim();
+  const date     = document.getElementById('cs-date').value;
+  const deadline = document.getElementById('cs-deadline').value;
+  const amount   = parseFloat(document.getElementById('cs-amount').value);
+  const notes    = document.getElementById('cs-notes').value.trim();
+
+  if (!store)          { toast('Введите название магазина','e'); return; }
+  if (!date)           { toast('Укажите дату отгрузки','e'); return; }
+  if (!amount || amount <= 0) { toast('Укажите сумму','e'); return; }
+
+  try {
+    await API('consignments', {
+      method: 'POST',
+      body: { rep_id: currentRep.id, store_name: store, shipped_at: date, amount, deadline_at: deadline, notes: notes || null }
+    });
+    toast('Консигнация добавлена','s');
+    closeM('m-new-cs');
+    await loadMyData();
+  } catch(e) { toast('Ошибка: ' + e.message,'e'); }
+}
+
+// ════════════════════════════════════════
+// ПЛАТЁЖ
+// ════════════════════════════════════════
+function openPayment(csId, storeName, rest) {
+  document.getElementById('pay-cs-id').value    = csId;
+  document.getElementById('pay-amount').value   = '';
+  document.getElementById('pay-date').value     = new Date().toISOString().slice(0,10);
+  document.getElementById('pay-notes').value    = '';
+  document.getElementById('m-pay-title').textContent = 'Платёж — ' + storeName;
+  document.getElementById('pay-hint').textContent    = `Остаток: ${fmtMoney(rest)}`;
+  openM('m-payment');
+  setTimeout(() => document.getElementById('pay-amount').focus(), 80);
+}
+
+async function savePayment() {
+  const csId   = document.getElementById('pay-cs-id').value;
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const date   = document.getElementById('pay-date').value;
+  const notes  = document.getElementById('pay-notes').value.trim();
+
+  if (!amount || amount <= 0) { toast('Введите сумму','e'); return; }
+  if (!date) { toast('Укажите дату','e'); return; }
+
+  try {
+    await API('consignment_payments', {
+      method: 'POST',
+      body: { consignment_id: csId, paid_at: date, amount, notes: notes || null }
+    });
+    toast('Платёж записан','s');
+    closeM('m-payment');
+    await loadMyData();
+  } catch(e) { toast('Ошибка: ' + e.message,'e'); }
+}
+
+// ════════════════════════════════════════
+// УДАЛЕНИЕ
+// ════════════════════════════════════════
+function confirmDeletePay(payId, csId) {
+  document.getElementById('confirm-msg').textContent = 'Удалить этот платёж?';
+  document.getElementById('confirm-sub').textContent = 'Остаток долга увеличится.';
+  document.getElementById('btn-confirm-ok').onclick = async () => {
+    try {
+      await API(`consignment_payments?id=eq.${payId}`, { method: 'DELETE' });
+      toast('Платёж удалён','s');
+      closeM('m-confirm');
+      await loadMyData();
+    } catch(e) { toast('Ошибка','e'); }
+  };
+  openM('m-confirm');
+}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,10); }
+function openM(id)  { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
+});
+
+function toast(msg, type='i') {
+  const wrap = document.getElementById('toast-wrap');
+  const el   = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${type==='s'?'✅':type==='e'?'❌':'ℹ️'}</span><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3200);
+}
+
+// ════════════════════════════════════════
+// START
+// ════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

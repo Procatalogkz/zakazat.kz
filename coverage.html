@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Зоны торговых представителей</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --white: #ffffff;
+      --accent: #0066cc;
+      --green: #28a745;
+      --red: #dc3545;
+      --orange: #fd7e14;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --text: #1d1d1f;
+      --muted: #6c757d;
+      --radius: 10px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    #login-screen.hidden { display: none; }
+    .login-box {
+      background: var(--white); border-radius: 16px;
+      padding: 40px 36px; width: 100%; max-width: 380px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    .login-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .login-box input {
+      width: 100%; padding: 12px 16px; margin-bottom: 12px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 15px; outline: none; transition: border-color .15s;
+    }
+    .login-box input:focus { border-color: var(--accent); }
+    .login-err { color: var(--red); font-size: 13px; margin-bottom: 10px; display: none; }
+    .login-btn-skip { font-size: 13px; color: var(--muted); margin-top: 14px; cursor: pointer; text-decoration: underline; }
+    .login-btn-skip:hover { color: var(--text); }
+
+    /* ── LAYOUT ── */
+    #app { display: none; flex-direction: row; height: 100vh; }
+    #app.active { display: flex; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 300px; flex-shrink: 0;
+      background: var(--white); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    }
+    .sb-head {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sb-title { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+    .sb-role { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+    .sb-section { padding: 12px 18px 6px; font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: .07em; }
+
+    /* Фильтры */
+    .day-filter, .rep-filter { padding: 0 12px 8px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 180px; flex-shrink: 0; }
+    .rep-filter { flex: 1; max-height: none; }
+    
+    .day-item, .rep-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      transition: background .15s; border: 2px solid transparent;
+    }
+    .day-item:hover, .rep-item:hover { background: #f5f5f7; }
+    .day-item.active, .rep-item.active { background: rgba(0,102,204,0.07); border-color: rgba(0,102,204,0.2); }
+    
+    .day-dot, .rep-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.15); }
+    .day-name, .rep-name { font-size: 13px; font-weight: 500; flex: 1; }
+    .day-count, .rep-count { font-size: 11px; color: var(--muted); }
+    .rep-all, .day-all { font-size: 13px; font-weight: 600; }
+
+    /* Список зон */
+    .zone-list { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; height: 220px; border-top: 1px solid var(--border); }
+    .zone-list-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 7px; cursor: pointer;
+      transition: background .15s; font-size: 12px;
+    }
+    .zone-list-item:hover { background: #f5f5f7; }
+    .zone-list-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .zone-list-name { font-weight: 600; }
+    .zone-list-rep { color: var(--muted); margin-left: 4px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── КАРТА ── */
+    .map-wrap { flex: 1; display: flex; flex-direction: column; position: relative; }
+    #map { flex: 1; }
+
+    /* ── ТУЛБАР КАРТЫ ── */
+    .map-toolbar {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 100; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    }
+
+    /* ── КНОПКИ ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .15s; white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success {
+  background: var(--green) !important;
+  color: #fff !important;
+  border-color: var(--green) !important;
+}
+.btn-success:hover {
+  background: #218838 !important;
+  border-color: #1e7e34 !important;
+}
+.btn-gray    { background: var(--gray); color: #fff; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+    /* ── МОДАЛКИ ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 8000;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .overlay.open { display: flex; }
+    .modal-box {
+      background: var(--white); border-radius: 16px;
+      padding: 28px 26px; width: 90%; max-width: 420px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    }
+.modal-title { font-size: 16px; font-weight: 800; margin-bottom: 18px; }
+.fg { margin-bottom: 14px; }
+.fg label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.fg input, .fg select { width: 100%; padding: 10px 13px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: border-color .15s; }
+.fg input:focus, .fg select:focus { border-color: var(--accent); }
+
+/* Стили для формы входа */
+.login-title { font-size: 20px; font-weight: 700; margin-bottom: 15px; text-align: center; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color .15s; }
+.form-control:focus { border-color: var(--accent); }
+.error-msg { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+
+    /* ── УВЕДОМЛЕНИЯ ── */
+    .notif-wrap { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .notif {
+      background: var(--green); color: #fff;
+      padding: 11px 22px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      animation: nIn .25s ease; white-space: nowrap;
+    }
+    .notif.error { background: var(--red); }
+    @keyframes nIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+
+    .empty-list { padding: 16px 18px; font-size: 12px; color: var(--muted); font-style: italic; }
+
+    /* ── СТАТУС РИСОВАНИЯ ── */
+    .draw-status {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      z-index: 100; background: rgba(0,0,0,0.85); color: #fff;
+      padding: 12px 24px; border-radius: 14px; font-size: 14px; font-weight: 600;
+      display: none; white-space: nowrap; backdrop-filter: blur(8px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3); gap: 16px;
+    }
+    .draw-status.visible { display: flex; align-items: center; }
+
+    @media (max-width: 640px) {
+      /* Сайдбар скрываем — фильтры переезжают в мобильную панель */
+      .sidebar { display: none !important; }
+      #app { flex-direction: column; }
+      .map-wrap { height: 100vh; }
+    }
+
+    /* ── ТЁМНАЯ ТЕМА ── */
+    body.dark-theme {
+      --bg: #1a1a2e; --white: #16213e; --border: #0f3460;
+      --text: #e0e0e0; --muted: #a0a0b0;
+      background: var(--bg); color: var(--text);
+    }
+    body.dark-theme .sidebar,
+    body.dark-theme .login-box,
+    body.dark-theme .modal-box { background: var(--white); color: var(--text); border-color: var(--border); }
+    body.dark-theme .sb-head,
+    body.dark-theme .sb-section { border-color: var(--border); }
+    body.dark-theme .day-item:hover,
+    body.dark-theme .rep-item:hover { background: rgba(255,255,255,0.06); }
+    body.dark-theme .day-item.active,
+    body.dark-theme .rep-item.active { background: rgba(0,102,204,0.2); }
+    body.dark-theme .btn-tool { background: #0f3460; color: #e0e0e0; border-color: #0f3460; }
+    body.dark-theme .btn-tool:hover { background: #1a4a80; }
+    body.dark-theme #map { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9); }
+    body.dark-theme .ymaps-2-1-79-placemark,
+    body.dark-theme .ymaps-2-1-79-balloon { filter: invert(1) hue-rotate(180deg); }
+    body.dark-theme .zone-list-item:hover { background: rgba(255,255,255,0.06); }
+    body.dark-theme .fg input,
+    body.dark-theme .fg select,
+    body.dark-theme .form-control { background: #0f3460; border-color: #1a4a80; color: var(--text); }
+    body.dark-theme .login-box input { background: #0f3460; border-color: #1a4a80; color: var(--text); }
+
+    /* ── МОБИЛЬНАЯ ПАНЕЛЬ ФИЛЬТРОВ ── */
+    .mob-bar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 200;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    body.dark-theme .mob-bar { background: rgba(22,33,62,0.97); border-color: var(--border); }
+    @media (max-width: 640px) { .mob-bar { display: flex; } }
+
+    .mob-filter-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all .15s;
+      min-width: 0;
+    }
+    body.dark-theme .mob-filter-btn { background: #16213e; color: var(--text); border-color: var(--border); }
+    .mob-filter-btn.has-value { border-color: var(--accent); color: var(--accent); background: rgba(0,102,204,0.08); }
+    .mob-tool-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: #fff;
+      font-size: 16px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    body.dark-theme .mob-tool-btn { background: #16213e; border-color: var(--border); }
+    .mob-tool-btn:hover { border-color: var(--accent); }
+
+/* Кнопка магазинов — активное состояние */
+.mob-filter-btn.stores-active {
+  border-color: #e8a020;
+  color: #e8a020;
+  background: rgba(232,160,32,0.1);
+}
+.sb-stores-btn {
+  margin: 8px 12px;
+  width: calc(100% - 24px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #f8f9fa;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sb-stores-btn:hover { border-color: #e8a020; background: rgba(232,160,32,0.06); }
+.sb-stores-btn.active { border-color: #e8a020; color: #e8a020; background: rgba(232,160,32,0.1); }
+body.dark-theme .sb-stores-btn { background: #0f3460; border-color: var(--border); color: var(--text); }
+
+    /* Дропдаун для мобильных фильтров */
+    .mob-dropdown {
+      position: fixed;
+      top: 56px; left: 12px; right: 12px;
+      z-index: 300;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    body.dark-theme .mob-dropdown { background: #16213e; border-color: var(--border); }
+    .mob-dropdown.open { display: flex; }
+    .mob-dropdown-head {
+      padding: 12px 16px 8px;
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .mob-dd-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: background .12s;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .mob-dd-item:last-child { border-bottom: none; }
+    .mob-dd-item:hover { background: rgba(0,102,204,0.06); }
+    .mob-dd-item.active { background: rgba(0,102,204,0.1); color: var(--accent); font-weight: 700; }
+    body.dark-theme .mob-dd-item:hover { background: rgba(255,255,255,0.06); }
+    body.dark-theme .mob-dd-item.active { background: rgba(0,102,204,0.2); }
+    .mob-dd-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .mob-dd-count { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .mob-dd-overlay { position: fixed; inset: 0; z-index: 250; display: none; }
+    .mob-dd-overlay.open { display: block; }
+/* Переключатели темы и печати в сайдбаре */
+.sb-tools { display: flex; gap: 8px; margin-top: 10px; }
+.btn-tool { flex: 1; padding: 6px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); border-radius: 6px; background: #f8f9fa; cursor: pointer; }
+.btn-tool:hover { background: #e9ecef; }
+.btn-tool:active { transform: scale(0.97); }
+
+/* Настройки для вывода на печать */
+@media print {
+  body, #app { display: block !important; height: auto !important; background: #fff; }
+  .sidebar, .mob-bar, .mob-dropdown, .map-toolbar, #draw-status, .notif-wrap, .ymaps-2-1-79-controls__control { display: none !important; }
+  .map-wrap { width: 100% !important; height: 100vh !important; position: absolute; inset: 0; }
+  #map { width: 100% !important; height: 100% !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Вход в систему</div>
+    <div id="role-selection" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+      <button type="button" class="btn btn-success btn-full" onclick="enterAsViewer()" style="padding: 14px; font-size: 1rem; font-weight: 600; background: var(--green); color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+        Я Торговый представитель
+      </button>
+      <button type="button" class="btn btn-full" onclick="showAdminForm()" style="padding: 14px; font-size: 1rem; font-weight: 600; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+        Я Администратор
+      </button>
+    </div>
+    <div id="admin-credentials-form" style="display: none; width: 100%; margin-top: 5px;">
+      <form id="login-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label>Логин</label>
+          <input type="text" id="login-username" class="form-control" placeholder="Введи логин" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Пароль</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <div class="error-msg" id="login-error">Неверный логин или пароль</div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button type="button" class="btn" onclick="hideAdminForm()" style="flex: 1;">Назад</button>
+          <button type="button" class="btn btn-primary" onclick="attemptLogin()" style="flex: 2;">Войти как Админ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── МОБИЛЬНАЯ ПАНЕЛЬ ФИЛЬТРОВ ── -->
+<div class="mob-bar" id="mob-bar">
+  <button class="mob-filter-btn" id="mob-btn-day" onclick="toggleMobDropdown('day')">📅 День</button>
+  <button class="mob-filter-btn" id="mob-btn-rep" onclick="toggleMobDropdown('rep')">👤 ТП</button>
+  <button class="mob-filter-btn" id="mob-btn-stores" onclick="toggleStores()">🏪 Магазины</button>
+  <button class="mob-tool-btn" onclick="toggleTheme()" title="Сменить тему">🌓</button>
+  <button class="mob-tool-btn" onclick="printMap()" title="Печать">🖨</button>
+</div>
+
+<!-- Оверлей под дропдауном -->
+<div class="mob-dd-overlay" id="mob-dd-overlay" onclick="closeMobDropdown()"></div>
+
+<!-- Дропдаун: дни -->
+<div class="mob-dropdown" id="mob-dd-day"></div>
+
+<!-- Дропдаун: ТП -->
+<div class="mob-dropdown" id="mob-dd-rep"></div>
+
+<div id="app">
+
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-title">Зоны торговых представителей</div>
+      <div class="sb-role" id="sb-role">👁 Просмотр</div>
+      <div class="sb-tools">
+        <button class="btn-tool" onclick="toggleTheme()">🌓 Сменить тему</button>
+        <button class="btn-tool" onclick="printMap()">🖨 Распечатать</button>
+      </div>
+    </div>
+
+    <div class="sb-section">Слои на карте</div>
+    <button class="sb-stores-btn" id="sb-stores-btn" onclick="toggleStores()">
+      🏪 <span id="sb-stores-label">Показать продуктовые магазины</span>
+    </button>
+
+    <div class="sb-section">Фильтр по дням</div>
+    <div class="day-filter" id="day-filter"></div>
+
+    <div class="sb-section">Фильтр по ТП</div>
+    <div class="rep-filter" id="rep-filter"></div>
+
+    <div class="sb-section">Зоны на карте</div>
+    <div class="zone-list" id="zone-list"></div>
+  </aside>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <div class="map-toolbar" id="admin-toolbar" style="display:none">
+      <button class="btn btn-primary" id="draw-btn" onclick="startDrawing()">✏️ Рисовать зону</button>
+      <button class="btn btn-gray" onclick="openRepModal()">👤 + Добавить ТП</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAllZones()">🗑 Очистить всё</button>
+    </div>
+
+    <div class="draw-status" id="draw-status">
+      <span>Кликайте по карте для создания границ зоны.</span>
+      <button class="btn btn-success btn-sm" onclick="finishDrawing()">✅ Завершить рисование</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-zone">
+  <div class="modal-box">
+    <div class="modal-title" id="zone-modal-title">Новая зона</div>
+    <div class="fg">
+      <label>День недели *</label>
+      <select id="zone-name">
+        <option value="Понедельник">Понедельник</option>
+        <option value="Вторник">Вторник</option>
+        <option value="Среда">Среда</option>
+        <option value="Четверг">Четверг</option>
+        <option value="Пятница">Пятница</option>
+        <option value="Суббота">Суббота</option>
+        <option value="Воскресенье">Воскресенье</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Торговый представитель *</label>
+      <select id="zone-rep-sel"></select>
+    </div>
+    <div class="fg">
+      <label>Цвет названия зоны</label>
+      <input type="color" id="zone-text-color" value="#1d1d1f" style="width:100%; height:36px; border:1px solid var(--border); border-radius:6px; cursor:pointer;">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="cancelZone()">Отмена</button>
+      <button class="btn btn-success" onclick="saveZone()">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-rep">
+  <div class="modal-box">
+    <div class="modal-title" id="rep-modal-title">Добавить торгового представителя</div>
+    <div class="fg">
+      <label>Имя / Фамилия *</label>
+      <input type="text" id="rep-name" placeholder="Например: Иван Петров">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('modal-rep')">Отмена</button>
+      <button class="btn btn-success" id="rep-save-btn" onclick="saveRep()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif-wrap" id="notif-wrap"></div>
+
+<script src="https://api-maps.yandex.ru/2.1/?apikey=9108ed42-562d-45d2-a4e2-d941952baa06&lang=ru_RU"></script>
+<script>
+// ════════════════════════════════════════
+// НАСТРОЙКИ
+// ════════════════════════════════════════
+const SUPABASE_URL      = 'https://xhcteinsgmrlpyijkhdb.supabase.co';
+const SUPABASE_KEY      = 'sb_publishable_h6M-sNlKmmeW8xrQeW4EtA_LjTBDn-d';
+
+
+const ADMIN_LOGIN = 'Sd1';
+const ADMIN_PASS  = 'Sd123123';
+
+// Фиксированные цвета зон по дням недели
+const DAY_COLORS = {
+  'Понедельник': '#0066cc',
+  'Вторник': '#28a745',
+  'Среда': '#ffcc00',
+  'Четверг': '#ff6600',
+  'Пятница': '#6f42c1',
+  'Суббота': '#e83e8c',
+  'Воскресенье': '#dc3545'
+};
+
+const DAYS_LIST = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+// ════════════════════════════════════════
+// API HELPER
+// ════════════════════════════════════════
+const API = (endpoint, options = {}) => {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...(options.headers || {})
+  };
+  return fetch(url, { ...options, headers }).then(async res => {
+    if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+    if (res.status === 204) return null;
+    return res.json();
+  });
+};
+
+// ════════════════════════════════════════
+// СОСТОЯНИЕ
+// ════════════════════════════════════════
+let isAdmin       = false;
+let isReadOnly    = false;
+let myMap         = null;
+let isDrawing     = false;
+let currentPoly   = null;
+let activeRepId   = 'all';
+let activeDayId   = 'all';
+let editingZoneId = null;
+let editingRepId  = null;
+let activeEditingZoneId = null;
+
+let reps  = [];
+let zones = [];
+
+const mapObjects = {};
+
+// ════════════════════════════════════════
+// АВТОРИЗАЦИЯ
+// ════════════════════════════════════════
+function initAuth() {
+  // Если пришел флаг обхода от торгового представителя — сразу входим как гость
+  if (localStorage.getItem('rep_bypass') === 'true') {
+    localStorage.removeItem('rep_bypass'); // Сразу стираем, чтобы не висел постоянным входом
+    enterAsViewer();
+    return;
+  }
+  
+  const authStatus = localStorage.getItem('auth');
+  // Если вообще нет флага авторизации — отправляем на индекс
+  if (!authStatus) {
+    window.location.href = 'index.html';
+    return;
+  }
+  // Если зашел торговый представитель (гость) — включаем режим просмотра
+  if (authStatus === 'guest') {
+    isReadOnly = true;
+    const adminToolbar = document.getElementById('admin-toolbar');
+    if (adminToolbar) adminToolbar.style.display = 'none';
+  } else {
+    // Если админ — режим редактирования активен
+    isReadOnly = false;
+  }
+  // Скрываем встроенный экран логина самого файла coverage
+  const loginScreen = document.getElementById('login-screen');
+  if (loginScreen) {
+    loginScreen.classList.add('hidden');
+  }
+  // Запускаем ваш оригинальный процесс загрузки карты и данных из Supabase
+  initMap();
+}
+
+function enterAsViewer() {
+  isAdmin = false;
+  localStorage.setItem('auth', 'guest');
+  startApp();
+}
+
+function startApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  document.getElementById('sb-role').textContent = isAdmin ? '🔑 Администратор' : '👁 Просмотр';
+  if (isAdmin) {
+    document.getElementById('admin-toolbar').style.display = 'flex';
+  }
+  ymaps.ready(initAuth);
+}
+
+// ════════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ КАРТЫ
+// ════════════════════════════════════════
+async function initMap() {
+  myMap = new ymaps.Map('map', {
+    center: [43.2389, 76.8897],
+    zoom: 11,
+    controls: ['zoomControl', 'fullscreenControl', 'geolocationControl']
+  });
+
+  await loadData();
+  renderSidebar();
+  renderAllZones();
+  updateMobButtons();
+  adjustMapForMobBar();
+}
+
+async function loadData() {
+  try {
+    const [repsData, zonesData] = await Promise.all([
+      API('reps?order=created_at'),
+      API('zones?order=created_at')
+    ]);
+    reps  = repsData  || [];
+    zones = (zonesData || []).map(z => ({
+      ...z,
+      coords: typeof z.coords === 'string' ? JSON.parse(z.coords) : z.coords,
+      center: typeof z.center === 'string' ? JSON.parse(z.center) : z.center,
+      textColor: z.color || '#1d1d1f' // Теперь читаем цвет текста из стандартного поля color
+    }));
+  } catch(e) {
+    notify('Ошибка загрузки данных: ' + e.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════
+// САЙДБАР И ФИЛЬТРЫ
+// ════════════════════════════════════════
+function renderSidebar() {
+  renderDayFilter();
+  renderRepFilter();
+  renderZoneList();
+}
+
+function renderDayFilter() {
+  const el = document.getElementById('day-filter');
+  const counts = {};
+  zones.forEach(z => { counts[z.name] = (counts[z.name] || 0) + 1; });
+
+  el.innerHTML = `
+    <div class="day-item ${activeDayId === 'all' ? 'active' : ''}" onclick="setDayFilter('all')">
+      <div class="day-dot" style="background:#888"></div>
+      <span class="day-all">Все дни</span>
+      <span class="day-count">${zones.length} зон</span>
+    </div>` +
+    DAYS_LIST.map(d => `
+      <div class="day-item ${activeDayId === d ? 'active' : ''}" onclick="setDayFilter('${d}')">
+        <div class="day-dot" style="background:${DAY_COLORS[d]}"></div>
+        <span class="day-name">${d}</span>
+        <span class="day-count">${counts[d] || 0}</span>
+      </div>`).join('');
+}
+
+function renderRepFilter() {
+  const el = document.getElementById('rep-filter');
+  const counts = {};
+  zones.forEach(z => { counts[z.rep_id] = (counts[z.rep_id] || 0) + 1; });
+
+  el.innerHTML = `
+    <div class="rep-item ${activeRepId === 'all' ? 'active' : ''}" onclick="setRepFilter('all')">
+      <div class="rep-dot" style="background:#888"></div>
+      <span class="rep-all">Все ТП</span>
+      <span class="rep-count">${zones.length} зон</span>
+    </div>` +
+    (reps.length
+      ? reps.map(r => `
+        <div class="rep-item ${activeRepId === r.id ? 'active' : ''}" onclick="setRepFilter('${r.id}')">
+          <div class="rep-dot" style="background:#6c757d"></div>
+          <span class="rep-name">${r.name}</span>
+          <span class="rep-count">${counts[r.id] || 0}</span>
+          ${isAdmin ? `
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button style="border:none;background:none;cursor:pointer;color:#888;font-size:12px" onclick="event.stopPropagation();openRepModal('${r.id}')" title="Редактировать">✏️</button>
+              <button style="border:none;background:none;cursor:pointer;color:#ccc;font-size:14px" onclick="event.stopPropagation();deleteRep('${r.id}')" title="Удалить">✕</button>
+            </div>
+          ` : ''}
+        </div>`).join('')
+      : '<div class="empty-list">Нет торговых представителей</div>');
+}
+
+function renderZoneList() {
+  const el = document.getElementById('zone-list');
+  let filtered = zones;
+  if (activeRepId !== 'all') filtered = filtered.filter(z => z.rep_id === activeRepId);
+  if (activeDayId !== 'all') filtered = filtered.filter(z => z.name === activeDayId);
+
+  if (!filtered.length) { el.innerHTML = '<div class="empty-list">Нет зон</div>'; return; }
+  el.innerHTML = filtered.map(z => {
+    const rep = reps.find(r => r.id === z.rep_id);
+    // Цвет кружочка берем из дней недели, а не из color
+    const polyColor = DAY_COLORS[z.name] || '#0066cc';
+    const isEditingGeo = activeEditingZoneId === z.id;
+    const geoBtnText = isEditingGeo ? '💾 Сохранить' : '✏️ Границы';
+    const geoBtnStyle = isEditingGeo ? 'background:#28a745; color:#fff;' : '';
+    return `<div class="zone-list-item" onclick="focusZone('${z.id}')">
+      <div class="zone-list-dot" style="background:${polyColor}"></div>
+      <span class="zone-list-name">${z.name}</span>
+      <span class="zone-list-rep">(${rep?.name || '—'})</span>
+      ${isAdmin ? `
+        <div style="display:flex; gap:6px; margin-left:auto; align-items:center;">
+          <button class="btn-tool" style="flex:0; padding:4px 6px;font-size:10px;${geoBtnStyle}" onclick="event.stopPropagation();toggleZoneEditGeometry('${z.id}')">${geoBtnText}</button>
+          <button style="border:none;background:none;cursor:pointer;color:#888;font-size:12px" onclick="event.stopPropagation();openZoneModal('${z.id}')" title="Редактировать">✏️</button>
+          <button style="border:none;background:none;cursor:pointer;color:#ccc;font-size:13px" onclick="event.stopPropagation();deleteZone('${z.id}')" title="Удалить">✕</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+function setRepFilter(repId) { activeRepId = repId; renderSidebar(); renderAllZones(); }
+function setDayFilter(dayId) { activeDayId = dayId; renderSidebar(); renderAllZones(); }
+
+// ════════════════════════════════════════
+// ГЕОМЕТРИЧЕСКАЯ ПРОВЕРКА ПЕРЕСЕЧЕНИЙ ЗОН
+// ════════════════════════════════════════
+function isPointInPolygon(point, vs) {
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0], yi = vs[i][1];
+    const xj = vs[j][0], yj = vs[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function checkZoneOverlap(newCoords, excludeZoneId = null) {
+  // 1. Находим границы (Bounding Box) для нарисованного полигона
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  newCoords.forEach(p => {
+    if (p[0] < minX) minX = p[0];
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[1] > maxY) maxY = p[1];
+  });
+  let totalPointsInsideNew = 0;
+  let overlappingPoints = 0;
+  const steps = 15; // Плотность сетки 15×15 (всего 225 точек для сканирования площади)
+  // 2. Сканируем площадь полигона виртуальными точками
+  for (let i = 0; i <= steps; i++) {
+    for (let j = 0; j <= steps; j++) {
+      const pt = [
+        minX + (maxX - minX) * (i / steps),
+        minY + (maxY - minY) * (j / steps)
+      ];
+      // Проверяем, находится ли точка внутри новой нарисованной зоны
+      if (isPointInPolygon(pt, newCoords)) {
+        totalPointsInsideNew++;
+        // Проверяем, пересекается ли эта точка с какой-либо из старых зон
+        for (const zone of zones) {
+          if (excludeZoneId && zone.id === excludeZoneId) continue;
+          const poly2Closed = [...zone.coords];
+          if (poly2Closed.length > 2 && (poly2Closed[0][0] !== poly2Closed[poly2Closed.length-1][0] || poly2Closed[0][1] !== poly2Closed[poly2Closed.length-1][1])) {
+            poly2Closed.push(poly2Closed[0]);
+          }
+          if (isPointInPolygon(pt, poly2Closed)) {
+            overlappingPoints++;
+            break; // Точка уже пересеклась, переходим к следующей
+          }
+        }
+      }
+    }
+  }
+  if (totalPointsInsideNew === 0) return false;
+  // Вычисляем долю наложения площадей
+  const overlapPercent = overlappingPoints / totalPointsInsideNew;
+  // Если пересечение больше 5% (0.05), запрещаем сохранение.
+  // Стыкующиеся края дадут около 0%, так как внутренняя площадь не задета.
+  return overlapPercent > 0.05; 
+}
+
+// ════════════════════════════════════════
+// РИСОВАНИЕ ЗОНЫ
+// ════════════════════════════════════════
+function startDrawing() {
+  if (!isAdmin || isDrawing) return;
+  if (!reps.length) { notify('Сначала добавьте торгового представителя', 'error'); return; }
+
+  editingZoneId = null; 
+  isDrawing = true;
+  const btn = document.getElementById('draw-btn');
+  btn.textContent = '⏹ Остановить';
+  btn.classList.replace('btn-primary','btn-orange');
+  document.getElementById('draw-status').classList.add('visible');
+
+  currentPoly = new ymaps.Polygon([[]], {}, {
+    fillColor: '#0066cc44',
+    fillOpacity: 0.4,
+    strokeColor: '#0066cc',
+    strokeWidth: 3,
+    editorDrawingCursor: 'crosshair'
+  });
+  myMap.geoObjects.add(currentPoly);
+  currentPoly.editor.startDrawing();
+
+  const onDbl = () => {
+    myMap.events.remove('dblclick', onDbl);
+    finishDrawing();
+  };
+  myMap.events.add('dblclick', onDbl);
+
+  btn.onclick = () => {
+    myMap.events.remove('dblclick', onDbl);
+    finishDrawing();
+  };
+}
+
+function finishDrawing() {
+  if (!currentPoly) return;
+  currentPoly.editor.stopDrawing();
+
+  const coords = currentPoly.geometry.getCoordinates()[0];
+  if (!coords || coords.length < 3) {
+    myMap.geoObjects.remove(currentPoly);
+    currentPoly = null;
+    resetDrawBtn();
+    notify('Минимум 3 точки для зоны', 'error');
+    return;
+  }
+  
+  // Валидация наложения новой зоны
+  if (checkZoneOverlap(coords)) {
+    myMap.geoObjects.remove(currentPoly);
+    currentPoly = null;
+    resetDrawBtn();
+    notify('Ошибка: Нельзя рисовать зону поверх существующей!', 'error');
+    return;
+  }
+
+  resetDrawBtn();
+  openZoneModal();
+}
+
+function resetDrawBtn() {
+  isDrawing = false;
+  const btn = document.getElementById('draw-btn');
+  btn.textContent = '✏️ Рисовать зону';
+  btn.classList.replace('btn-orange','btn-primary');
+  btn.onclick = startDrawing;
+  document.getElementById('draw-status').classList.remove('visible');
+}
+
+function cancelZone() {
+  if (currentPoly) { myMap.geoObjects.remove(currentPoly); currentPoly = null; }
+  closeModal('modal-zone');
+}
+
+// ════════════════════════════════════════
+// МОДАЛКА ЗОНЫ (ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ)
+// ════════════════════════════════════════
+function openZoneModal(zoneId = null) {
+  const sel = document.getElementById('zone-rep-sel');
+  sel.innerHTML = reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  
+  if (zoneId) {
+    editingZoneId = zoneId;
+    const zone = zones.find(z => z.id === zoneId);
+    document.getElementById('zone-modal-title').textContent = 'Редактировать зону';
+    document.getElementById('zone-name').value = zone.name;
+    sel.value = zone.rep_id;
+    document.getElementById('zone-text-color').value = zone.color || '#1d1d1f'; // Читаем из color
+  } else {
+    editingZoneId = null;
+    document.getElementById('zone-modal-title').textContent = 'Новая зона';
+    if (activeRepId !== 'all') sel.value = activeRepId;
+    if (activeDayId !== 'all') document.getElementById('zone-name').value = activeDayId;
+    document.getElementById('zone-text-color').value = '#1d1d1f';
+  }
+  openModal('modal-zone');
+}
+
+async function saveZone() {
+  const name  = document.getElementById('zone-name').value;
+  const repId = document.getElementById('zone-rep-sel').value;
+  if (!repId) { notify('Выберите торгового представителя', 'error'); return; }
+
+  // Берем выбранный цвет из инпута и будем сохранять его в поле color
+  const textColor = document.getElementById('zone-text-color').value;
+
+  if (editingZoneId) {
+    try {
+      notify('Обновляю зону...', 'success');
+      await API(`zones?id=eq.${editingZoneId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, rep_id: repId, color: textColor }) // Записываем в color
+      });
+      
+      const idx = zones.findIndex(z => z.id === editingZoneId);
+      if (idx !== -1) {
+        zones[idx].name = name;
+        zones[idx].rep_id = repId;
+        zones[idx].color = textColor;
+        zones[idx].textColor = textColor;
+      }
+      closeModal('modal-zone');
+      renderSidebar();
+      renderAllZones();
+      notify('Зона успешно обновлена');
+    } catch(e) {
+      notify('Ошибка обновления: ' + e.message, 'error');
+    }
+    editingZoneId = null;
+  } else {
+    if (!currentPoly) return;
+    const coords = currentPoly.geometry.getCoordinates()[0];
+    const center = polygonCenter(coords);
+
+    myMap.geoObjects.remove(currentPoly);
+    currentPoly = null;
+    closeModal('modal-zone');
+
+    try {
+      notify('Сохраняю зону...', 'success');
+      const saved = await API('zones', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: uid(),
+          name,
+          rep_id: repId,
+          color: textColor, // Записываем в color
+          coords: JSON.stringify(coords),
+          center: JSON.stringify(center)
+        })
+      });
+      const zone = saved[0];
+      zone.coords = typeof zone.coords === 'string' ? JSON.parse(zone.coords) : zone.coords;
+      zone.center = typeof zone.center === 'string' ? JSON.parse(zone.center) : zone.center;
+      zone.textColor = textColor;
+      zone.color = textColor;
+      zones.push(zone);
+      renderSidebar();
+      renderAllZones();
+      notify('Зона сохранена');
+    } catch(e) {
+      notify('Ошибка сохранения зоны: ' + e.message, 'error');
+    }
+  }
+}
+
+// ════════════════════════════════════════
+// ОТРИСОВКА ЗОН НА КАРТЕ
+// ════════════════════════════════════════
+function renderAllZones() {
+  Object.values(mapObjects).forEach(o => {
+    myMap.geoObjects.remove(o.polygon);
+    myMap.geoObjects.remove(o.label);
+  });
+  Object.keys(mapObjects).forEach(k => delete mapObjects[k]);
+
+  let filtered = zones;
+  if (activeRepId !== 'all') filtered = filtered.filter(z => z.rep_id === activeRepId);
+  if (activeDayId !== 'all') filtered = filtered.filter(z => z.name === activeDayId);
+
+  filtered.forEach(addZoneToMap);
+}
+
+function addZoneToMap(zone) {
+  const rep = reps.find(r => r.id === zone.rep_id);
+  // Цвет полигона и флажка по-прежнему берем из дней недели
+  const polyColor = DAY_COLORS[zone.name] || '#0066cc';
+  // Цвет текста берем из поля color
+  const textColor = zone.color || '#1d1d1f';
+
+  const polygon = new ymaps.Polygon(
+    [zone.coords],
+    { hintContent: `${zone.name} — ${rep?.name || '—'}` },
+    {
+      fillColor: polyColor + '44',
+      fillOpacity: 0.45,
+      strokeColor: polyColor,
+      strokeWidth: 3,
+    }
+  );
+
+  const label = new ymaps.Placemark(zone.center, {
+    iconContent: `<div style="color: ${textColor}; font-weight: bold; font-size:12px; white-space:nowrap; padding: 0 4px;">${zone.name} • ${rep?.name || '—'}</div>`,
+  }, {
+    preset: 'islands#blueStretchyIcon',
+    iconColor: polyColor,
+  });
+
+  myMap.geoObjects.add(polygon);
+  myMap.geoObjects.add(label);
+  mapObjects[zone.id] = { polygon, label };
+}
+
+function focusZone(zoneId) {
+  const zone = zones.find(z => z.id === zoneId);
+  if (!zone) return;
+  myMap.setCenter(zone.center, 13, { duration: 400 });
+}
+
+// ════════════════════════════════════════
+// УДАЛЕНИЕ ДАННЫХ
+// ════════════════════════════════════════
+async function deleteZone(id) {
+  if (!confirm('Удалить зону?')) return;
+  try {
+    await API(`zones?id=eq.${id}`, { method: 'DELETE' });
+    zones = zones.filter(z => z.id !== id);
+    if (mapObjects[id]) {
+      myMap.geoObjects.remove(mapObjects[id].polygon);
+      myMap.geoObjects.remove(mapObjects[id].label);
+      delete mapObjects[id];
+    }
+    renderSidebar();
+    notify('Зона удалена');
+  } catch(e) {
+    notify('Ошибка удаления: ' + e.message, 'error');
+  }
+}
+
+async function deleteRep(id) {
+  const hasZones = zones.some(z => z.rep_id === id);
+  const msg = hasZones ? 'У этого ТП есть зоны — они тоже удалятся. Продолжить?' : 'Удалить торгового представителя?';
+  if (!confirm(msg)) return;
+  try {
+    await API(`reps?id=eq.${id}`, { method: 'DELETE' });
+    zones.filter(z => z.rep_id === id).forEach(z => {
+      if (mapObjects[z.id]) {
+        myMap.geoObjects.remove(mapObjects[z.id].polygon);
+        myMap.geoObjects.remove(mapObjects[z.id].label);
+        delete mapObjects[z.id];
+      }
+    });
+    zones = zones.filter(z => z.rep_id !== id);
+    reps  = reps.filter(r => r.id !== id);
+    if (activeRepId === id) activeRepId = 'all';
+    renderSidebar();
+    notify('Торговый представитель удалён');
+  } catch(e) {
+    notify('Ошибка удаления: ' + e.message, 'error');
+  }
+}
+
+async function clearAllZones() {
+  if (!confirm('Удалить ВСЕ зоны? Это нельзя отменить.')) return;
+  try {
+    await API('zones?id=neq.null', { method: 'DELETE' });
+    Object.values(mapObjects).forEach(o => {
+      myMap.geoObjects.remove(o.polygon);
+      myMap.geoObjects.remove(o.label);
+    });
+    Object.keys(mapObjects).forEach(k => delete mapObjects[k]);
+    zones = [];
+    renderSidebar();
+    notify('Все зоны удалены');
+  } catch(e) {
+    notify('Ошибка: ' + e.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════
+// МОДАЛКА ТП (ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ)
+// ════════════════════════════════════════
+function openRepModal(repId = null) {
+  if (repId) {
+    editingRepId = repId;
+    const rep = reps.find(r => r.id === repId);
+    document.getElementById('rep-modal-title').textContent = 'Редактировать ТП';
+    document.getElementById('rep-name').value = rep.name;
+    document.getElementById('rep-save-btn').textContent = 'Сохранить';
+  } else {
+    editingRepId = null;
+    document.getElementById('rep-modal-title').textContent = 'Добавить торгового представителя';
+    document.getElementById('rep-name').value = '';
+    document.getElementById('rep-save-btn').textContent = 'Добавить';
+  }
+  openModal('modal-rep');
+  setTimeout(() => document.getElementById('rep-name').focus(), 80);
+}
+
+async function saveRep() {
+  const name = document.getElementById('rep-name').value.trim();
+  if (!name) { notify('Введите имя', 'error'); return; }
+  
+  if (editingRepId) {
+    // Редактирование
+    try {
+      notify('Обновляю ТП...', 'success');
+      await API(`reps?id=eq.${editingRepId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name })
+      });
+      const idx = reps.findIndex(r => r.id === editingRepId);
+      if (idx !== -1) reps[idx].name = name;
+      closeModal('modal-rep');
+      renderSidebar();
+      renderAllZones();
+      notify('Торговый представитель изменен');
+    } catch(e) {
+      notify('Ошибка: ' + e.message, 'error');
+    }
+    editingRepId = null;
+  } else {
+    // Добавление нового
+    try {
+      const saved = await API('reps', {
+        method: 'POST',
+        body: JSON.stringify({ id: uid(), name, color: '#0066cc' })
+      });
+      reps.push(saved[0]);
+      closeModal('modal-rep');
+      renderSidebar();
+      notify('Торговый представитель добавлен');
+    } catch(e) {
+      notify('Ошибка: ' + e.message, 'error');
+    }
+  }
+}
+
+// ════════════════════════════════════════
+// ТЁМНАЯ ТЕМА
+// ════════════════════════════════════════
+let isDark = localStorage.getItem('coverage-theme') === 'dark';
+
+function applyTheme() {
+  document.body.classList.toggle('dark-theme', isDark);
+  localStorage.setItem('coverage-theme', isDark ? 'dark' : 'light');
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  applyTheme();
+}
+
+// Применяем тему сразу при загрузке
+applyTheme();
+
+// ════════════════════════════════════════
+// МОБИЛЬНЫЕ ДРОПДАУНЫ
+// ════════════════════════════════════════
+let _mobOpenDropdown = null;
+
+function toggleMobDropdown(type) {
+  if (_mobOpenDropdown === type) {
+    closeMobDropdown();
+    return;
+  }
+  closeMobDropdown();
+  _mobOpenDropdown = type;
+
+  if (type === 'day') renderMobDayDropdown();
+  if (type === 'rep') renderMobRepDropdown();
+
+  document.getElementById('mob-dd-' + type).classList.add('open');
+  document.getElementById('mob-dd-overlay').classList.add('open');
+}
+
+function closeMobDropdown() {
+  if (_mobOpenDropdown) {
+    document.getElementById('mob-dd-' + _mobOpenDropdown)?.classList.remove('open');
+  }
+  document.getElementById('mob-dd-overlay').classList.remove('open');
+  _mobOpenDropdown = null;
+}
+
+function renderMobDayDropdown() {
+  const el = document.getElementById('mob-dd-day');
+  const counts = {};
+  zones.forEach(z => { counts[z.name] = (counts[z.name] || 0) + 1; });
+
+  el.innerHTML = `<div class="mob-dropdown-head">Выберите день недели</div>` +
+    `<div class="mob-dd-item ${activeDayId === 'all' ? 'active' : ''}" onclick="mobSelectDay('all')">
+      <div class="mob-dd-dot" style="background:#888"></div>
+      <span>Все дни</span>
+      <span class="mob-dd-count">${zones.length}</span>
+    </div>` +
+    DAYS_LIST.map(d => `
+      <div class="mob-dd-item ${activeDayId === d ? 'active' : ''}" onclick="mobSelectDay('${d}')">
+        <div class="mob-dd-dot" style="background:${DAY_COLORS[d]}"></div>
+        <span>${d}</span>
+        <span class="mob-dd-count">${counts[d] || 0}</span>
+      </div>`).join('');
+}
+
+function renderMobRepDropdown() {
+  const el = document.getElementById('mob-dd-rep');
+  const counts = {};
+  zones.forEach(z => { counts[z.rep_id] = (counts[z.rep_id] || 0) + 1; });
+
+  el.innerHTML = `<div class="mob-dropdown-head">Выберите торгового представителя</div>` +
+    `<div class="mob-dd-item ${activeRepId === 'all' ? 'active' : ''}" onclick="mobSelectRep('all')">
+      <div class="mob-dd-dot" style="background:#888"></div>
+      <span>Все ТП</span>
+      <span class="mob-dd-count">${zones.length}</span>
+    </div>` +
+    (reps.length
+      ? reps.map(r => `
+        <div class="mob-dd-item ${activeRepId === r.id ? 'active' : ''}" onclick="mobSelectRep('${r.id}')">
+          <div class="mob-dd-dot" style="background:#6c757d"></div>
+          <span>${r.name}</span>
+          <span class="mob-dd-count">${counts[r.id] || 0}</span>
+        </div>`).join('')
+      : '<div style="padding:16px;color:var(--muted);font-size:13px;text-align:center">Нет торговых представителей</div>');
+}
+
+function mobSelectDay(day) {
+  activeDayId = day;
+  renderSidebar();
+  renderAllZones();
+  updateMobButtons();
+  closeMobDropdown();
+}
+
+function mobSelectRep(repId) {
+  activeRepId = repId;
+  renderSidebar();
+  renderAllZones();
+  updateMobButtons();
+  closeMobDropdown();
+}
+
+function updateMobButtons() {
+  const dayBtn = document.getElementById('mob-btn-day');
+  const repBtn = document.getElementById('mob-btn-rep');
+  if (!dayBtn || !repBtn) return;
+
+  if (activeDayId === 'all') {
+    dayBtn.textContent = '📅 День';
+    dayBtn.classList.remove('has-value');
+  } else {
+    dayBtn.textContent = '📅 ' + activeDayId;
+    dayBtn.classList.add('has-value');
+  }
+
+  if (activeRepId === 'all') {
+    repBtn.textContent = '👤 ТП';
+    repBtn.classList.remove('has-value');
+  } else {
+    const rep = reps.find(r => r.id === activeRepId);
+    repBtn.textContent = '👤 ' + (rep?.name || 'ТП');
+    repBtn.classList.add('has-value');
+  }
+}
+
+// Сдвиг карты вниз на мобиле чтобы не перекрывала панель
+function adjustMapForMobBar() {
+  const bar = document.getElementById('mob-bar');
+  const map = document.getElementById('map');
+  if (!bar || !map) return;
+  if (window.innerWidth <= 640) {
+    const h = bar.offsetHeight;
+    map.style.paddingTop = h + 'px';
+  } else {
+    map.style.paddingTop = '';
+  }
+}
+window.addEventListener('resize', adjustMapForMobBar);
+
+// ════════════════════════════════════════
+// ПРОДУКТОВЫЕ МАГАЗИНЫ
+// ════════════════════════════════════════
+let storesActive  = false;
+let storesLayer   = null;
+let storesLoading = false;
+
+async function toggleStores() {
+  if (storesLoading) return;
+
+  if (storesActive) {
+if (storesLayer) { myMap.geoObjects.remove(storesLayer); storesLayer = null; }
+    storesActive = false;
+    myMap.events.remove('boundschange', onBoundsChangeStores);
+    clearTimeout(_storesDebounceTimer);
+    updateStoresBtn();
+    return;
+  }
+
+  storesLoading = true;
+  updateStoresBtn(true);
+  notify('Ищу продуктовые магазины...');
+
+  try {
+    const isMobile = window.innerWidth <= 640;
+    const center   = myMap.getCenter();
+    const zoom     = myMap.getZoom();
+    const queries  = ['продуктовый магазин', 'супермаркет', 'гастроном', 'минимаркет'];
+
+    let searchOptions;
+
+    if (isMobile || zoom < 13) {
+      // На мобиле или маленьком зуме — ищем по тексту с городом без strictBounds
+      // Берём координаты центра и строим маленький bbox ~2км вокруг него
+      const delta = 0.018; // ~2км в градусах
+      const bbox  = [
+        [center[0] - delta, center[1] - delta],
+        [center[0] + delta, center[1] + delta]
+      ];
+      searchOptions = { boundedBy: bbox, strictBounds: false, results: 50, kind: 'biz' };
+    } else {
+      // На десктопе с нормальным зумом — используем видимую область
+      searchOptions = { boundedBy: myMap.getBounds(), strictBounds: true, results: 50, kind: 'biz' };
+    }
+
+    const results = await Promise.allSettled(
+      queries.map(q => ymaps.search(q, searchOptions))
+    );
+
+    const collection = new ymaps.GeoObjectCollection({}, {});
+    const seen = new Set();
+
+    results.forEach(res => {
+      if (res.status !== 'fulfilled') return;
+      res.value.geoObjects.each(obj => {
+        const coords = obj.geometry.getCoordinates();
+        const key = coords.join(',');
+        if (seen.has(key)) return;
+        seen.add(key);
+        const name = obj.properties.get('name') || 'Магазин';
+        const addr = obj.properties.get('description') || '';
+        collection.add(new ymaps.Placemark(coords, {
+          balloonContentHeader: '🏪 ' + name,
+          balloonContentBody: addr,
+          hintContent: name,
+        }, {
+          preset: 'islands#orangeShoppingIcon',
+          zIndex: 10,
+        }));
+      });
+    });
+
+if (collection.getLength() === 0) {
+      notify('Магазины не найдены в этом районе. Переместите карту и попробуйте снова.', 'error');
+      storesLoading = false; updateStoresBtn(); return;
+    }
+
+    storesLayer = collection;
+    storesActive = true;
+    myMap.geoObjects.add(storesLayer);
+    notify('🏪 Найдено ' + collection.getLength() + ' магазинов');
+
+    // При изменении области — автообновление если магазины активны
+    myMap.events.add('boundschange', onBoundsChangeStores);
+
+  } catch(e) {
+    notify('Ошибка: ' + e.message, 'error');
+  } finally {
+    storesLoading = false;
+    updateStoresBtn();
+  }
+}
+
+let _storesDebounceTimer = null;
+
+function onBoundsChangeStores() {
+  if (!storesActive) {
+    myMap.events.remove('boundschange', onBoundsChangeStores);
+    return;
+  }
+  // Дебаунс — ждём 800мс после последнего зума/перемещения
+  clearTimeout(_storesDebounceTimer);
+  _storesDebounceTimer = setTimeout(async () => {
+    if (!storesActive) return;
+    if (storesLayer) { myMap.geoObjects.remove(storesLayer); storesLayer = null; }
+    storesActive = false;
+    await toggleStores(); // перезапускаем поиск
+  }, 800);
+}
+
+function updateStoresBtn(loading = false) {
+  const mobBtn  = document.getElementById('mob-btn-stores');
+  const sbBtn   = document.getElementById('sb-stores-btn');
+  const sbLabel = document.getElementById('sb-stores-label');
+
+  if (mobBtn) {
+    mobBtn.textContent = loading ? '⏳ Ищу...' : storesActive ? '🏪 Скрыть' : '🏪 Магазины';
+    mobBtn.classList.toggle('stores-active', storesActive && !loading);
+  }
+  if (sbBtn && sbLabel) {
+    sbLabel.textContent = loading ? 'Поиск магазинов...' : storesActive ? 'Скрыть магазины' : 'Показать продуктовые магазины';
+    sbBtn.classList.toggle('active', storesActive && !loading);
+  }
+}
+
+// ════════════════════════════════════════
+function polygonCenter(coords) {
+  let x = 0, y = 0;
+  coords.forEach(p => { x += p[0]; y += p[1]; });
+  return [x / coords.length, y / coords.length];
+}
+
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal('modal-zone');
+    closeModal('modal-rep');
+  }
+});
+
+function notify(msg, type = 'success') {
+  const wrap = document.getElementById('notif-wrap');
+  const el   = document.createElement('div');
+  el.className = 'notif' + (type === 'error' ? ' error' : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// Показывает поля ввода для администратора
+function showAdminForm() {
+  // Прячем выбор ролей, показываем форму ввода
+  document.getElementById('role-selection').style.display = 'none';
+  document.getElementById('admin-credentials-form').style.display = 'block';
+  setTimeout(() => {
+    const input = document.getElementById('login-username');
+    if(input) input.focus();
+  }, 50);
+}
+
+// Возвращает к выбору роли (кнопка "Назад")
+function hideAdminForm() {
+  // Прячем форму ввода, возвращаем выбор ролей
+  document.getElementById('admin-credentials-form').style.display = 'none';
+  document.getElementById('role-selection').style.display = 'flex';
+  const err = document.getElementById('login-error');
+  if(err) err.style.display = 'none';
+}
+
+// ════════════════════════════════════════
+// АВТОРИЗАЦИЯ (обновлённая)
+// ════════════════════════════════════════
+function attemptLogin() {
+  const user = document.getElementById('login-username').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const err  = document.getElementById('login-error');
+
+  if (user === ADMIN_LOGIN && pass === ADMIN_PASS) {
+    isAdmin = true;
+    localStorage.setItem('auth', 'true');
+    err.style.display = 'none';
+    startApp();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function printMap() {
+  // Даем карте секунду на пересчет размеров перед печатью
+  myMap.container.fitToViewport();
+  window.print();
+}
+
+// ════════════════════════════════════════
+// РЕДАКТИРОВАНИЕ ГЕОМЕТРИИ ЗОНЫ
+// ════════════════════════════════════════
+async function toggleZoneEditGeometry(zoneId) {
+  const mapObj = mapObjects[zoneId];
+  if (!mapObj) return;
+  
+  // Если эта зона уже редактируется — сохраняем изменения
+  if (activeEditingZoneId === zoneId) {
+    mapObj.polygon.editor.stopEditing();
+    // Получаем обновленные координаты из объекта карты
+    const newCoords = mapObj.polygon.geometry.getCoordinates()[0];
+    const zone = zones.find(z => z.id === zoneId);
+    if (zone) {
+      zone.coords = newCoords;
+      zone.center = polygonCenter(newCoords);
+      try {
+        await API(`zones?id=eq.${zoneId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            coords: JSON.stringify(newCoords),
+            center: JSON.stringify(zone.center)
+          })
+        });
+        notify('Границы зоны успешно сохранены');
+      } catch(err) {
+        notify('Ошибка сохранения в базу: ' + err.message, 'error');
+      }
+    }
+    activeEditingZoneId = null;
+    renderSidebar(); // Перерисовываем сайдбар, чтобы кнопка вернула прежний вид
+  } else {
+    // Если в этот момент редактировалась ДРУГАЯ зона — сначала закрываем её редактор
+    if (activeEditingZoneId) {
+      await toggleZoneEditGeometry(activeEditingZoneId);
+    }
+    // Включаем редактор для выбранной зоны
+    activeEditingZoneId = zoneId;
+    mapObj.polygon.editor.startEditing();
+    notify('Режим редактирования включен. Перетаскивайте точки на карте.', 'orange');
+    renderSidebar(); // Перерисовываем сайдбар, чтобы кнопка сменилась на "Сохранить"
+  }
+}
+</script>
+</body>
+</html>

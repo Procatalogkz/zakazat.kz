@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Супервайзер — Консигнации</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a; --bg2: #131313; --bg3: #1a1a1a; --bg4: #222;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --text: #f0ede8; --muted: #6e6e6e; --muted2: #444;
+  --accent: #e8c547; --accent2: #c9a82c;
+  --green: #52c97a; --red: #e05252; --blue: #5294e0; --orange: #e8a020;
+  --r: 9px; --r2: 13px; --r3: 18px;
+  --fh: 'Unbounded', sans-serif; --fb: 'Golos Text', sans-serif;
+  --sidebar: 240px;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; }
+
+/* ── LOGIN ── */
+#screen-login {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px;
+}
+#screen-login.hide { display: none; }
+.login-box {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r3);
+  padding: 40px 36px; width: 100%; max-width: 380px; text-align: center;
+}
+.login-logo { font-family: var(--fh); font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .08em; margin-bottom: 24px; }
+.login-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+.login-err { color: var(--red); font-size: 13px; margin-bottom: 12px; display: none; }
+
+/* ── LAYOUT ── */
+.layout { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar); background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 50;
+}
+.sb-logo { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); font-family: var(--fh); font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .04em; line-height: 1.4; }
+.sb-logo small { display: block; font-size: 9px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+.sb-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+.sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r); font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; }
+.sb-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.sb-item.active { background: rgba(232,197,71,.1); color: var(--accent); }
+.sb-item .ico { font-size: 15px; width: 22px; text-align: center; }
+.sb-footer { padding: 10px 8px 14px; border-top: 1px solid var(--border); }
+
+/* ── MAIN ── */
+.main { margin-left: var(--sidebar); flex: 1; display: flex; flex-direction: column; }
+.topbar { padding: 0 28px; height: 56px; border-bottom: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40; }
+.topbar-title { font-family: var(--fh); font-size: 13px; font-weight: 600; }
+.page-wrap { padding: 28px; }
+
+/* ── FORMS ── */
+.fg { margin-bottom: 16px; }
+.fg label { display: block; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+input[type=text], input[type=number], input[type=date], input[type=password], select, textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  color: var(--text); font-family: var(--fb); font-size: 14px; padding: 10px 13px; outline: none; transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus { border-color: rgba(232,197,71,.5); box-shadow: 0 0 0 3px rgba(232,197,71,.06); }
+input::placeholder { color: var(--muted2); }
+select option { background: #1a1a1a; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.frow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 17px; border-radius: var(--r); border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--fb); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn:hover { background: rgba(255,255,255,.05); }
+.btn-primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-danger { border-color: rgba(224,82,82,.2); color: var(--red); }
+.btn-danger:hover { background: rgba(224,82,82,.07); }
+.btn-ghost { border-color: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-xs { padding: 4px 9px; font-size: 11px; }
+.btn-full { width: 100%; justify-content: center; }
+.btn-green { background: var(--green); color: #000; border-color: transparent; font-weight: 600; }
+.btn-green:hover { background: #3db062; }
+
+/* ── STATS ── */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 18px 20px; }
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 700; margin-bottom: 8px; }
+.stat-val { font-family: var(--fh); font-size: 22px; font-weight: 700; line-height: 1; }
+.stat-val.ca { color: var(--accent); }
+.stat-val.cr { color: var(--red); }
+.stat-val.cg { color: var(--green); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* ── PANEL ── */
+.panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r3); margin-bottom: 16px; }
+.panel-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.panel-title { font-family: var(--fh); font-size: 11px; font-weight: 700; }
+.panel-body { padding: 0; }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 16px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; background: var(--bg2); }
+td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.015); }
+.td-act { display: flex; gap: 6px; align-items: center; }
+
+/* ── STATUS BADGE ── */
+.sbadge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.sbadge-paid    { background: rgba(82,201,122,.12); color: var(--green); }
+.sbadge-partial { background: rgba(232,160,32,.12); color: var(--orange); }
+.sbadge-overdue { background: rgba(224,82,82,.12); color: var(--red); }
+.sbadge-active  { background: rgba(82,148,224,.12); color: var(--blue); }
+
+/* ── MODAL ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(6px); }
+.overlay.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r3); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+.modal.wide { max-width: 720px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg2); z-index: 2; }
+.modal-title { font-family: var(--fh); font-size: 12px; font-weight: 700; }
+.modal-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1; padding: 0 4px; border-radius: 6px; }
+.modal-x:hover { color: var(--text); }
+.modal-body { padding: 24px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg2); position: sticky; bottom: 0; }
+
+/* ── DEADLINE TIMELINE ── */
+.timeline { display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; }
+.tl-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--r2); border: 1px solid var(--border); background: var(--bg3); transition: border-color .15s; }
+.tl-item:hover { border-color: var(--border2); }
+.tl-date { font-family: var(--fh); font-size: 11px; font-weight: 700; color: var(--muted); min-width: 54px; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tl-info { flex: 1; min-width: 0; }
+.tl-rep { font-size: 12px; color: var(--muted); }
+.tl-store { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-amount { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.tl-overdue { border-color: rgba(224,82,82,.3); background: rgba(224,82,82,.05); }
+.tl-today { border-color: rgba(232,160,32,.4); background: rgba(232,160,32,.06); }
+
+/* ── REP ACCORDION ── */
+.rep-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); margin-bottom: 10px; overflow: hidden; }
+.rep-block-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; transition: background .15s; }
+.rep-block-head:hover { background: rgba(255,255,255,.03); }
+.rep-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.rep-block-name { font-weight: 700; font-size: 14px; flex: 1; }
+.rep-block-debt { font-family: var(--fh); font-size: 13px; font-weight: 700; }
+.rep-block-debt.has-debt { color: var(--red); }
+.rep-block-debt.no-debt { color: var(--green); }
+.rep-block-arrow { color: var(--muted); font-size: 12px; transition: transform .2s; }
+.rep-block-arrow.open { transform: rotate(90deg); }
+.rep-block-body { display: none; border-top: 1px solid var(--border); }
+.rep-block-body.open { display: block; }
+
+/* ── PAYMENT HISTORY ── */
+.pay-list { display: flex; flex-direction: column; gap: 6px; }
+.pay-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg3); border-radius: var(--r); font-size: 13px; }
+.pay-date { color: var(--muted); min-width: 80px; }
+.pay-amount { font-weight: 700; color: var(--green); }
+.pay-note { color: var(--muted); font-size: 12px; flex: 1; }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.progress-bar { height: 100%; border-radius: 3px; transition: width .3s; }
+
+/* ── PIN INPUT ── */
+.pin-input { letter-spacing: 8px; font-size: 20px; font-weight: 700; text-align: center; font-family: var(--fh); }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-ico { font-size: 36px; margin-bottom: 10px; }
+.empty-t { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.empty-s { font-size: 12px; }
+
+hr.div { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── WHATSAPP BTN ── */
+.btn-wa { background: #25d366; color: #fff; border-color: transparent; }
+.btn-wa:hover { background: #1db954; }
+
+@media(max-width:900px) {
+  :root { --sidebar: 56px; }
+  .sb-logo small, .sb-item span:not(.ico) { display: none; }
+  .sb-logo { font-size: 9px; padding: 14px 0; text-align: center; }
+  .sb-item { justify-content: center; padding: 10px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .frow, .frow3 { grid-template-columns: 1fr; }
+  .page-wrap { padding: 16px; }
+  .topbar { padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">SUPERVISOR PANEL</div>
+    <div class="login-title">Вход для супервайзера</div>
+    <div class="login-sub">Только для руководителей</div>
+    <div class="login-err" id="login-err">Неверный логин или пароль</div>
+    <div class="fg"><label>Логин</label><input type="text" id="l-user" placeholder="Sd1"></div>
+    <div class="fg"><label>Пароль</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="layout" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-logo">SUPER<br>VISOR<small>Panel</small></div>
+    <nav class="sb-nav">
+      <div class="sb-item active" id="nav-dash"          onclick="go('dash')">         <span class="ico">📊</span><span>Дашборд</span></div>
+      <div class="sb-item"        id="nav-deadlines"     onclick="go('deadlines')">    <span class="ico">⏰</span><span>Дедлайны</span></div>
+      <div class="sb-item"        id="nav-consignments"  onclick="go('consignments')"> <span class="ico">📦</span><span>Все консигнации</span></div>
+      <div class="sb-item"        id="nav-reps"          onclick="go('reps')">         <span class="ico">👥</span><span>Торговые (ТП)</span></div>
+    </nav>
+    <div class="sb-footer">
+      <button class="btn btn-ghost btn-sm btn-full" onclick="doLogout()">↩ Выйти</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Дашборд</div>
+      <div id="topbar-actions"></div>
+    </div>
+    <div class="page-wrap">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="page-dash">
+        <div class="stats-row">
+          <div class="stat"><div class="stat-label">Общий долг</div><div class="stat-val cr" id="st-total">—</div><div class="stat-sub">по всем ТП</div></div>
+          <div class="stat"><div class="stat-label">Просрочено</div><div class="stat-val cr" id="st-overdue">—</div><div class="stat-sub">консигнаций</div></div>
+          <div class="stat"><div class="stat-label">Активных</div><div class="stat-val ca" id="st-active">—</div><div class="stat-sub">консигнаций</div></div>
+          <div class="stat"><div class="stat-label">Торговых</div><div class="stat-val cg" id="st-reps">—</div><div class="stat-sub">представителей</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">⏰ Ближайшие дедлайны (14 дней)</div></div>
+          <div class="timeline" id="dash-deadlines"></div>
+        </div>
+        <div id="dash-reps-wrap"></div>
+      </div>
+
+      <!-- ── DEADLINES ── -->
+      <div id="page-deadlines" style="display:none">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Все дедлайны</div>
+            <select id="dl-filter-rep" onchange="renderDeadlines()" style="width:180px;padding:6px 10px;font-size:13px">
+              <option value="">Все ТП</option>
+            </select>
+          </div>
+          <div class="timeline" id="all-deadlines"></div>
+        </div>
+      </div>
+
+      <!-- ── ALL CONSIGNMENTS ── -->
+      <div id="page-consignments" style="display:none">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Все консигнации</div>
+            <div style="display:flex;gap:8px">
+              <select id="cs-filter-rep" onchange="renderAllConsignments()" style="width:160px;padding:6px 10px;font-size:13px"><option value="">Все ТП</option></select>
+              <select id="cs-filter-status" onchange="renderAllConsignments()" style="width:140px;padding:6px 10px;font-size:13px">
+                <option value="">Все статусы</option>
+                <option value="overdue">Просрочены</option>
+                <option value="partial">Частично</option>
+                <option value="active">Активные</option>
+                <option value="paid">Оплачены</option>
+              </select>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Магазин</th><th>ТП</th><th>Отгрузка</th>
+                <th>Сумма</th><th>Оплачено</th><th>Остаток</th>
+                <th>Дедлайн</th><th>Статус</th><th style="width:120px">Действия</th>
+              </tr></thead>
+              <tbody id="all-cs-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPS MANAGEMENT ── -->
+      <div id="page-reps" style="display:none">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Торговые представители</div>
+            <button class="btn btn-primary btn-sm" onclick="openRepModal()">+ Добавить ТП</button>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Имя</th><th>PIN</th><th>Консигнаций</th>
+                <th>Долг</th><th style="width:160px">Действия</th>
+              </tr></thead>
+              <tbody id="reps-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: REP ══ -->
+<div class="overlay" id="m-rep">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-rep-title">Новый торговый представитель</div>
+      <button class="modal-x" onclick="closeM('m-rep')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rep-id">
+      <div class="fg"><label>Имя / Фамилия *</label><input type="text" id="rep-name" placeholder="Иван Петров"></div>
+      <div class="frow">
+        <div class="fg">
+          <label>PIN-код (4 цифры) *</label>
+          <input type="number" id="rep-pin" class="pin-input" placeholder="0000" min="0" max="9999">
+          <div class="hint">ТП вводит этот PIN для входа</div>
+        </div>
+        <div class="fg">
+          <label>Цвет на карте</label>
+          <input type="color" id="rep-color" value="#0066cc" style="height:44px;padding:4px 8px;cursor:pointer">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Лимит консигнаций (₸)</label>
+        <div class="pfx" style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none">₸</span>
+          <input type="number" id="rep-limit" placeholder="500000" min="0" style="padding-left:30px">
+        </div>
+        <div class="hint">Максимальная сумма активного долга. 0 = без лимита.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-rep')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveRep()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONSIGNMENT DETAIL ══ -->
+<div class="overlay" id="m-cs-detail">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div class="modal-title" id="m-cs-title">Консигнация</div>
+      <button class="modal-x" onclick="closeM('m-cs-detail')">×</button>
+    </div>
+    <div class="modal-body" id="m-cs-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-cs-detail')">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EDIT DEADLINE ══ -->
+<div class="overlay" id="m-deadline">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Изменить дедлайн</div>
+      <button class="modal-x" onclick="closeM('m-deadline')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dl-cs-id">
+      <div class="fg">
+        <label>Новый дедлайн</label>
+        <input type="date" id="dl-date">
+      </div>
+      <div class="fg">
+        <label>Причина изменения</label>
+        <input type="text" id="dl-notes" placeholder="Например: договорённость с магазином">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-deadline')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveDeadline()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFIRM ══ -->
+<div class="overlay" id="m-confirm">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><div class="modal-title">Подтверждение</div><button class="modal-x" onclick="closeM('m-confirm')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px" id="confirm-msg"></div>
+      <div style="font-size:13px;color:var(--muted)" id="confirm-sub"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM('m-confirm')">Отмена</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px" id="toast-wrap"></div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+const SUPABASE_URL      = 'https://xhcteinsgmrlpyijkhdb.supabase.co';
+const SUPABASE_KEY      = 'sb_publishable_h6M-sNlKmmeW8xrQeW4EtA_LjTBDn-d';
+const ADMIN_LOGIN  = 'Sd1';
+const ADMIN_PASS   = 'Sd123123';
+const WHATSAPP_NUM = '77001234567'; // ← свой номер
+
+// ════════════════════════════════════════
+// API
+// ════════════════════════════════════════
+const API = (ep, opts = {}) => {
+  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers||{}) };
+  if (opts.body && typeof opts.body === 'object') opts.body = JSON.stringify(opts.body);
+  return fetch(`${SUPABASE_URL}/rest/v1/${ep}`, { ...opts, headers }).then(async r => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    if (r.status === 204) return null;
+    return r.json();
+  });
+};
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let reps = [], consignments = [], payments = [];
+
+// ════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  const err = document.getElementById('login-err');
+  if (u === ADMIN_LOGIN && p === ADMIN_PASS) {
+    err.style.display = 'none';
+    document.getElementById('screen-login').classList.add('hide');
+    document.getElementById('app').style.display = 'flex';
+    loadAll();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-login').classList.remove('hide');
+  document.getElementById('l-pass').value = '';
+}
+
+// ════════════════════════════════════════
+// LOAD DATA
+// ════════════════════════════════════════
+async function loadAll() {
+  try {
+    const [repsData, csData, payData] = await Promise.all([
+      API('reps?order=name'),
+      API('consignments?order=shipped_at.desc'),
+      API('consignment_payments?order=paid_at.desc')
+    ]);
+    reps         = repsData  || [];
+    consignments = csData    || [];
+    payments     = payData   || [];
+    fillRepFilters();
+    go(currentPage || 'dash');
+  } catch(e) {
+    toast('Ошибка загрузки: ' + e.message, 'e');
+  }
+}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function getRepName(id) { return reps.find(r => r.id === id)?.name || '—'; }
+function getRepColor(id) { return reps.find(r => r.id === id)?.color || '#888'; }
+
+function getPaid(csId) {
+  return payments.filter(p => p.consignment_id === csId).reduce((s,p) => s + Number(p.amount), 0);
+}
+
+function getStatus(cs) {
+  const paid    = getPaid(cs.id);
+  const rest    = Number(cs.amount) - paid;
+  const overdue = cs.deadline_at && new Date(cs.deadline_at) < new Date(new Date().toDateString());
+  if (rest <= 0)  return 'paid';
+  if (overdue)    return 'overdue';
+  if (paid > 0)   return 'partial';
+  return 'active';
+}
+
+function statusBadge(status) {
+  const map = {
+    paid:    ['✅ Оплачена',     'sbadge-paid'],
+    partial: ['🟡 Частично',    'sbadge-partial'],
+    overdue: ['🔴 Просрочена',  'sbadge-overdue'],
+    active:  ['🔵 Активная',    'sbadge-active'],
+  };
+  const [label, cls] = map[status] || ['—',''];
+  return `<span class="sbadge ${cls}">${label}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function fmtMoney(n) { return Number(n||0).toLocaleString('ru-RU') + ' ₸'; }
+
+function daysLeft(deadline) {
+  if (!deadline) return null;
+  const diff = Math.ceil((new Date(deadline) - new Date(new Date().toDateString())) / 86400000);
+  return diff;
+}
+
+function emptyHtml(ico, t, s) {
+  return `<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-t">${t}</div><div class="empty-s">${s}</div></div>`;
+}
+
+function fillRepFilters() {
+  const opts = reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  ['dl-filter-rep','cs-filter-rep'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">Все ТП</option>' + opts;
+  });
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+const PAGES = ['dash','deadlines','consignments','reps'];
+const TITLES = { dash:'Дашборд', deadlines:'Дедлайны', consignments:'Все консигнации', reps:'Торговые представители' };
+const ACTIONS = {
+  reps: () => `<button class="btn btn-primary btn-sm" onclick="openRepModal()">+ Добавить ТП</button>`,
+};
+let currentPage = 'dash';
+
+function go(page) {
+  currentPage = page;
+  PAGES.forEach(p => {
+    document.getElementById('page-'+p).style.display = p === page ? '' : 'none';
+    document.getElementById('nav-'+p)?.classList.toggle('active', p === page);
+  });
+  document.getElementById('topbar-title').textContent = TITLES[page] || page;
+  document.getElementById('topbar-actions').innerHTML = ACTIONS[page] ? ACTIONS[page]() : '';
+  if (page === 'dash')         renderDash();
+  if (page === 'deadlines')    renderDeadlines();
+  if (page === 'consignments') renderAllConsignments();
+  if (page === 'reps')         renderReps();
+}
+
+// ════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════
+function renderDash() {
+  // Stats
+  let totalDebt = 0, overdueCount = 0, activeCount = 0;
+  consignments.forEach(cs => {
+    const paid = getPaid(cs.id);
+    const rest = Number(cs.amount) - paid;
+    if (rest > 0) totalDebt += rest;
+    const st = getStatus(cs);
+    if (st === 'overdue') overdueCount++;
+    if (st === 'active' || st === 'partial') activeCount++;
+  });
+  document.getElementById('st-total').textContent   = fmtMoney(totalDebt);
+  document.getElementById('st-overdue').textContent = overdueCount;
+  document.getElementById('st-active').textContent  = activeCount;
+  document.getElementById('st-reps').textContent    = reps.length;
+
+  // Ближайшие дедлайны (14 дней)
+  const now = new Date(new Date().toDateString());
+  const in14 = new Date(now); in14.setDate(in14.getDate() + 14);
+  const upcoming = consignments
+    .filter(cs => {
+      if (!cs.deadline_at) return false;
+      const d = new Date(cs.deadline_at);
+      const st = getStatus(cs);
+      return st !== 'paid' && d <= in14;
+    })
+    .sort((a,b) => new Date(a.deadline_at) - new Date(b.deadline_at))
+    .slice(0, 15);
+
+  const dlEl = document.getElementById('dash-deadlines');
+  dlEl.innerHTML = upcoming.length ? upcoming.map(cs => timelineItem(cs)).join('') : emptyHtml('✅','Нет ближайших дедлайнов','Все платежи в порядке');
+
+  // По ТП
+  renderDashReps();
+}
+
+function timelineItem(cs) {
+  const dl    = daysLeft(cs.deadline_at);
+  const paid  = getPaid(cs.id);
+  const rest  = Number(cs.amount) - paid;
+  const st    = getStatus(cs);
+  const extra = st === 'overdue' ? 'tl-overdue' : (dl === 0 ? 'tl-today' : '');
+  const dlLabel = dl < 0 ? `просрочено на ${Math.abs(dl)} дн.` : dl === 0 ? 'сегодня!' : `${dl} дн.`;
+  return `<div class="tl-item ${extra}">
+    <div class="tl-date">${fmtDate(cs.deadline_at)}</div>
+    <div class="tl-dot" style="background:${getRepColor(cs.rep_id)}"></div>
+    <div class="tl-info">
+      <div class="tl-rep">${getRepName(cs.rep_id)} · ${dlLabel}</div>
+      <div class="tl-store">${cs.store_name}</div>
+    </div>
+    <div class="tl-amount">${fmtMoney(rest)}</div>
+    <button class="btn btn-xs btn-ghost" onclick="openDeadlineModal('${cs.id}','${cs.deadline_at}')">✏️</button>
+    <button class="btn btn-xs btn-ghost" onclick="openCsDetail('${cs.id}')">📋</button>
+  </div>`;
+}
+
+function renderDashReps() {
+  const wrap = document.getElementById('dash-reps-wrap');
+  if (!reps.length) { wrap.innerHTML = ''; return; }
+
+  wrap.innerHTML = reps.map(r => {
+    const rCons = consignments.filter(c => c.rep_id === r.id);
+    let debt = 0;
+    rCons.forEach(cs => {
+      const rest = Number(cs.amount) - getPaid(cs.id);
+      if (rest > 0) debt += rest;
+    });
+    const overdued = rCons.filter(cs => getStatus(cs) === 'overdue').length;
+    return `
+      <div class="rep-block" id="rb-${r.id}">
+        <div class="rep-block-head" onclick="toggleRepBlock('${r.id}')">
+          <div class="rep-color-dot" style="background:${r.color||'#888'}"></div>
+          <div class="rep-block-name">${r.name}</div>
+          ${overdued ? `<span class="sbadge sbadge-overdue" style="font-size:10px">${overdued} просроч.</span>` : ''}
+          <div style="text-align:right">
+            <div class="rep-block-debt ${debt > 0 ? 'has-debt' : 'no-debt'}">${fmtMoney(debt)}</div>
+            ${r.credit_limit > 0 ? `
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">из ${fmtMoney(r.credit_limit)}</div>
+              ${debt >= r.credit_limit ? `<div style="font-size:10px;color:var(--red);font-weight:700">⚠️ ЛИМИТ ИСЧЕРПАН</div>` : ''}
+            ` : ''}
+          </div>
+          <div class="rep-block-arrow" id="rba-${r.id}">▶</div>
+        </div>
+        <div class="rep-block-body" id="rbb-${r.id}">
+          ${renderRepConsignments(r.id)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderRepConsignments(repId) {
+  const rCons = consignments.filter(c => c.rep_id === repId).sort((a,b) => new Date(b.shipped_at) - new Date(a.shipped_at));
+  if (!rCons.length) return emptyHtml('📦','Нет консигнаций','');
+
+  return `<div class="tbl-wrap"><table>
+    <thead><tr><th>Магазин</th><th>Отгрузка</th><th>Сумма</th><th>Оплачено</th><th>Остаток</th><th>Дедлайн</th><th>Статус</th><th>Действия</th></tr></thead>
+    <tbody>
+    ${rCons.map(cs => {
+      const paid = getPaid(cs.id);
+      const rest = Number(cs.amount) - paid;
+      const pct  = Math.min(100, Math.round(paid / Number(cs.amount) * 100));
+      const st   = getStatus(cs);
+      const dl   = daysLeft(cs.deadline_at);
+      const dlColor = st === 'overdue' ? 'var(--red)' : dl <= 3 ? 'var(--orange)' : 'var(--muted)';
+      return `<tr>
+        <td><strong>${cs.store_name}</strong>${cs.notes ? `<br><span style="font-size:11px;color:var(--muted)">${cs.notes}</span>` : ''}</td>
+        <td style="color:var(--muted);font-size:12px">${fmtDate(cs.shipped_at)}</td>
+        <td style="font-weight:700">${fmtMoney(cs.amount)}</td>
+        <td>
+          <div style="font-size:13px;color:var(--green);font-weight:600">${fmtMoney(paid)}</div>
+          <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${st==='paid'?'var(--green)':st==='overdue'?'var(--red)':'var(--orange)'}"></div></div>
+        </td>
+        <td style="font-weight:700;color:${rest>0?'var(--red)':'var(--green)'}">${fmtMoney(rest)}</td>
+        <td style="font-size:12px;color:${dlColor}">${fmtDate(cs.deadline_at)}${dl !== null && st !== 'paid' ? `<br><span style="font-size:10px">${dl<0?`просрочено ${Math.abs(dl)} дн.`:dl===0?'сегодня!':dl+' дн.'}</span>` : ''}</td>
+        <td>${statusBadge(st)}</td>
+        <td><div class="td-act">
+          <button class="btn btn-xs btn-ghost" onclick="openCsDetail('${cs.id}')">📋</button>
+          <button class="btn btn-xs btn-ghost" onclick="openDeadlineModal('${cs.id}','${cs.deadline_at}')">✏️ Дедлайн</button>
+          <button class="btn btn-xs btn-danger" onclick="confirmDeleteCs('${cs.id}','${cs.store_name}')">✕</button>
+        </div></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function toggleRepBlock(repId) {
+  const body  = document.getElementById('rbb-' + repId);
+  const arrow = document.getElementById('rba-' + repId);
+  const open  = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  arrow.classList.toggle('open', !open);
+}
+
+// ════════════════════════════════════════
+// DEADLINES PAGE
+// ════════════════════════════════════════
+function renderDeadlines() {
+  const repId = document.getElementById('dl-filter-rep')?.value || '';
+  const el    = document.getElementById('all-deadlines');
+  let list = consignments
+    .filter(cs => getStatus(cs) !== 'paid')
+    .filter(cs => !repId || cs.rep_id === repId)
+    .sort((a,b) => new Date(a.deadline_at) - new Date(b.deadline_at));
+  el.innerHTML = list.length ? list.map(cs => timelineItem(cs)).join('') : emptyHtml('✅','Нет активных дедлайнов','');
+}
+
+// ════════════════════════════════════════
+// ALL CONSIGNMENTS PAGE
+// ════════════════════════════════════════
+function renderAllConsignments() {
+  const repId  = document.getElementById('cs-filter-rep')?.value || '';
+  const status = document.getElementById('cs-filter-status')?.value || '';
+  const body   = document.getElementById('all-cs-body');
+
+  let list = consignments
+    .filter(cs => !repId  || cs.rep_id === repId)
+    .filter(cs => !status || getStatus(cs) === status)
+    .sort((a,b) => new Date(b.shipped_at) - new Date(a.shipped_at));
+
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="9">${emptyHtml('📦','Нет консигнаций','')}</td></tr>`;
+    return;
+  }
+  body.innerHTML = list.map(cs => {
+    const paid = getPaid(cs.id);
+    const rest = Number(cs.amount) - paid;
+    const st   = getStatus(cs);
+    return `<tr>
+      <td><strong>${cs.store_name}</strong></td>
+      <td><span style="color:var(--muted)">${getRepName(cs.rep_id)}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${fmtDate(cs.shipped_at)}</td>
+      <td style="font-weight:700">${fmtMoney(cs.amount)}</td>
+      <td style="color:var(--green)">${fmtMoney(paid)}</td>
+      <td style="font-weight:700;color:${rest>0?'var(--red)':'var(--green)'}">${fmtMoney(rest)}</td>
+      <td style="font-size:12px;color:${st==='overdue'?'var(--red)':'var(--muted)'}">${fmtDate(cs.deadline_at)}</td>
+      <td>${statusBadge(st)}</td>
+      <td><div class="td-act">
+        <button class="btn btn-xs btn-ghost" onclick="openCsDetail('${cs.id}')">📋</button>
+        <button class="btn btn-xs btn-ghost" onclick="openDeadlineModal('${cs.id}','${cs.deadline_at}')">✏️</button>
+        <button class="btn btn-xs btn-danger" onclick="confirmDeleteCs('${cs.id}','${cs.store_name}')">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// REPS
+// ════════════════════════════════════════
+function renderReps() {
+  const body = document.getElementById('reps-body');
+  if (!reps.length) {
+    body.innerHTML = `<tr><td colspan="5">${emptyHtml('👥','Нет торговых представителей','Нажмите «+ Добавить ТП»')}</td></tr>`;
+    return;
+  }
+  body.innerHTML = reps.map(r => {
+    const rCons = consignments.filter(c => c.rep_id === r.id);
+    let debt = 0;
+    rCons.forEach(cs => { const rest = Number(cs.amount) - getPaid(cs.id); if(rest>0) debt+=rest; });
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${r.color||'#888'};flex-shrink:0"></div>
+          <strong>${r.name}</strong>
+        </div>
+      </td>
+      <td>
+        ${r.pin
+          ? `<span style="font-family:monospace;font-size:16px;letter-spacing:4px;color:var(--accent)">${r.pin}</span>`
+          : `<span style="color:var(--muted);font-size:12px">Не задан</span>`}
+      </td>
+      <td><span style="color:var(--muted)">${rCons.length} конс.</span></td>
+      <td>
+        <div style="font-weight:700;color:${debt>0?'var(--red)':'var(--green)'}">${fmtMoney(debt)}</div>
+        ${r.credit_limit > 0 ? `
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">
+            лимит: ${fmtMoney(r.credit_limit)}
+          </div>
+          <div class="progress-wrap" style="margin-top:4px">
+            <div class="progress-bar" style="width:${Math.min(100,Math.round(debt/r.credit_limit*100))}%;background:${debt>=r.credit_limit?'var(--red)':debt/r.credit_limit>0.8?'var(--orange)':'var(--green)'}"></div>
+          </div>
+          ${debt >= r.credit_limit ? `<div style="font-size:10px;color:var(--red);font-weight:700;margin-top:3px">⚠️ ЛИМИТ ИСЧЕРПАН</div>` :
+             debt/r.credit_limit > 0.8 ? `<div style="font-size:10px;color:var(--orange);margin-top:3px">⚠️ ${Math.round(debt/r.credit_limit*100)}% лимита</div>` : ''}
+        ` : '<div style="font-size:11px;color:var(--muted2);margin-top:2px">без лимита</div>'}
+      </td>
+      <td><div class="td-act">
+        <button class="btn btn-xs btn-ghost" onclick="openRepModal('${r.id}')">✏️ Ред.</button>
+        <button class="btn btn-xs btn-wa" onclick="notifyRepWa('${r.id}')">📲 WA</button>
+        <button class="btn btn-xs btn-danger" onclick="confirmDeleteRep('${r.id}','${r.name}')">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openRepModal(id) {
+  const r = id ? reps.find(x => x.id === id) : null;
+  document.getElementById('m-rep-title').textContent = r ? 'Редактировать ТП' : 'Новый торговый представитель';
+  document.getElementById('rep-id').value    = r ? r.id : '';
+  document.getElementById('rep-name').value  = r ? r.name : '';
+  document.getElementById('rep-pin').value   = r ? (r.pin||'') : '';
+  document.getElementById('rep-color').value = r ? (r.color||'#0066cc') : '#0066cc';
+  document.getElementById('rep-limit').value = r ? (r.credit_limit||'') : '';
+  openM('m-rep');
+  setTimeout(() => document.getElementById('rep-name').focus(), 80);
+}
+
+async function saveRep() {
+  const id    = document.getElementById('rep-id').value;
+  const name  = document.getElementById('rep-name').value.trim();
+  const pin   = document.getElementById('rep-pin').value.trim();
+  const color = document.getElementById('rep-color').value;
+  if (!name) { toast('Введите имя','e'); return; }
+  if (!pin || pin.length !== 4 || isNaN(pin)) { toast('PIN должен быть 4 цифры','e'); return; }
+  const limit = parseFloat(document.getElementById('rep-limit').value) || 0;
+  try {
+    if (id) {
+      await API(`reps?id=eq.${id}`, { method: 'PATCH', body: { name, pin, color, credit_limit: limit } });
+      toast('ТП обновлён','s');
+    } else {
+      const saved = await API('reps', { method: 'POST', body: { id: uid(), name, pin, color, credit_limit: limit } });
+      reps.push(saved[0]);
+    }
+    closeM('m-rep');
+    await loadAll();
+  } catch(e) { toast('Ошибка: '+e.message,'e'); }
+}
+
+// ════════════════════════════════════════
+// CONSIGNMENT DETAIL
+// ════════════════════════════════════════
+function openCsDetail(csId) {
+  const cs   = consignments.find(c => c.id === csId);
+  if (!cs) return;
+  const pays = payments.filter(p => p.consignment_id === csId).sort((a,b) => new Date(a.paid_at)-new Date(b.paid_at));
+  const paid = getPaid(csId);
+  const rest = Number(cs.amount) - paid;
+  const pct  = Math.min(100, Math.round(paid / Number(cs.amount) * 100));
+  const st   = getStatus(cs);
+
+  document.getElementById('m-cs-title').textContent = cs.store_name;
+  document.getElementById('m-cs-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Торговый</div><div style="font-weight:700">${getRepName(cs.rep_id)}</div></div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Статус</div>${statusBadge(st)}</div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Дата отгрузки</div><div style="font-weight:600">${fmtDate(cs.shipped_at)}</div></div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Дедлайн</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:600;color:${st==='overdue'?'var(--red)':'var(--text)'}">${fmtDate(cs.deadline_at)}</span>
+          <button class="btn btn-xs btn-ghost" onclick="openDeadlineModal('${cs.id}','${cs.deadline_at}')">✏️</button>
+        </div>
+      </div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Сумма отгрузки</div><div style="font-family:var(--fh);font-size:18px;font-weight:700">${fmtMoney(cs.amount)}</div></div>
+      <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Остаток</div><div style="font-family:var(--fh);font-size:18px;font-weight:700;color:${rest>0?'var(--red)':'var(--green)'}">${fmtMoney(rest)}</div></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+        <span>Оплачено: ${fmtMoney(paid)}</span><span>${pct}%</span>
+      </div>
+      <div class="progress-wrap" style="height:8px">
+        <div class="progress-bar" style="width:${pct}%;background:${st==='paid'?'var(--green)':st==='overdue'?'var(--red)':'var(--orange)'}"></div>
+      </div>
+    </div>
+    ${cs.notes ? `<div style="font-size:13px;color:var(--muted);margin-bottom:16px">📝 ${cs.notes}</div>` : ''}
+    <hr class="div">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">История платежей</div>
+    ${pays.length
+      ? `<div class="pay-list">${pays.map(p => `
+          <div class="pay-item">
+            <span class="pay-date">${fmtDate(p.paid_at)}</span>
+            <span class="pay-amount">+${fmtMoney(p.amount)}</span>
+            <span class="pay-note">${p.notes||''}</span>
+          </div>`).join('')}</div>`
+      : `<div style="font-size:13px;color:var(--muted);padding:16px 0;text-align:center">Платежей пока нет</div>`}
+    <div style="margin-top:16px">
+      <button class="btn btn-wa btn-sm" onclick="sendWaReminder('${cs.id}')">
+        📲 Напомнить в WhatsApp
+      </button>
+    </div>`;
+  openM('m-cs-detail');
+}
+
+// ════════════════════════════════════════
+// DEADLINE EDIT
+// ════════════════════════════════════════
+function openDeadlineModal(csId, currentDate) {
+  document.getElementById('dl-cs-id').value  = csId;
+  document.getElementById('dl-date').value   = currentDate || '';
+  document.getElementById('dl-notes').value  = '';
+  openM('m-deadline');
+}
+
+async function saveDeadline() {
+  const csId  = document.getElementById('dl-cs-id').value;
+  const date  = document.getElementById('dl-date').value;
+  const notes = document.getElementById('dl-notes').value.trim();
+  if (!date) { toast('Выберите дату','e'); return; }
+  try {
+    await API(`consignments?id=eq.${csId}`, { method: 'PATCH', body: { deadline_at: date, ...(notes ? {notes} : {}) } });
+    toast('Дедлайн обновлён','s');
+    closeM('m-deadline');
+    await loadAll();
+  } catch(e) { toast('Ошибка: '+e.message,'e'); }
+}
+
+// ════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════
+function confirmDeleteCs(id, name) {
+  document.getElementById('confirm-msg').textContent = `Удалить консигнацию «${name}»?`;
+  document.getElementById('confirm-sub').textContent = 'Все платежи по ней тоже удалятся.';
+  document.getElementById('btn-confirm-ok').onclick = async () => {
+    try {
+      await API(`consignments?id=eq.${id}`, { method: 'DELETE' });
+      toast('Консигнация удалена','s');
+      closeM('m-confirm');
+      await loadAll();
+    } catch(e) { toast('Ошибка','e'); }
+  };
+  openM('m-confirm');
+}
+
+function confirmDeleteRep(id, name) {
+  document.getElementById('confirm-msg').textContent = `Удалить ТП «${name}»?`;
+  document.getElementById('confirm-sub').textContent = 'Все его консигнации и платежи тоже удалятся.';
+  document.getElementById('btn-confirm-ok').onclick = async () => {
+    try {
+      await API(`reps?id=eq.${id}`, { method: 'DELETE' });
+      toast('ТП удалён','s');
+      closeM('m-confirm');
+      await loadAll();
+    } catch(e) { toast('Ошибка','e'); }
+  };
+  openM('m-confirm');
+}
+
+// ════════════════════════════════════════
+// WHATSAPP
+// ════════════════════════════════════════
+function sendWaReminder(csId) {
+  const cs   = consignments.find(c => c.id === csId);
+  if (!cs) return;
+  const paid = getPaid(csId);
+  const rest = Number(cs.amount) - paid;
+  const rep  = reps.find(r => r.id === cs.rep_id);
+  const text = `Здравствуйте, ${rep?.name||''}!\n\nНапоминаем о консигнации:\n🏪 Магазин: ${cs.store_name}\n📅 Отгрузка: ${fmtDate(cs.shipped_at)}\n💰 Сумма: ${fmtMoney(cs.amount)}\n✅ Оплачено: ${fmtMoney(paid)}\n⏳ Остаток: ${fmtMoney(rest)}\n📆 Дедлайн: ${fmtDate(cs.deadline_at)}\n\nПожалуйста, обеспечьте оплату в срок.`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function notifyRepWa(repId) {
+  const rep   = reps.find(r => r.id === repId);
+  const rCons = consignments.filter(c => c.rep_id === repId && getStatus(c) !== 'paid');
+  if (!rCons.length) { toast('Нет активных консигнаций у этого ТП','i'); return; }
+  let debt = 0;
+  rCons.forEach(cs => { debt += Number(cs.amount) - getPaid(cs.id); });
+  const lines = rCons.map(cs => {
+    const rest = Number(cs.amount) - getPaid(cs.id);
+    return `• ${cs.store_name}: ${fmtMoney(rest)} (дедлайн ${fmtDate(cs.deadline_at)})`;
+  }).join('\n');
+  const text = `Здравствуйте, ${rep?.name||''}!\n\nВаши активные консигнации:\n${lines}\n\n💰 Итого долг: ${fmtMoney(debt)}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,10); }
+function openM(id)  { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => { o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }); });
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); });
+
+function toast(msg, type='i') {
+  const wrap = document.getElementById('toast-wrap');
+  const el   = document.createElement('div');
+  el.style.cssText = `background:${type==='s'?'#1a3a1a':type==='e'?'#3a1a1a':'#2a2a2a'};border:1px solid ${type==='s'?'var(--green)':type==='e'?'var(--red)':'var(--border2)'};border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:240px;animation:tIn .25s ease`;
+  el.innerHTML = `<span>${type==='s'?'✅':type==='e'?'❌':'ℹ️'}</span><span>${msg}</span>`;
+  const style = document.createElement('style');
+  style.textContent = '@keyframes tIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}';
+  if (!document.getElementById('toast-style')) { style.id='toast-style'; document.head.appendChild(style); }
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3200);
+}
+</script>
+</body>
+</html>

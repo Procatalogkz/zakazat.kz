@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeflow — Главная</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg2: #131313;
+            --accent: #e8c547;
+            --text: #f0ede8;
+            --muted: #6e6e6e;
+            --radius: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        /* Сетка квадратиков слева направо */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: var(--bg2);
+            color: var(--text);
+            text-decoration: none;
+            padding: 30px 20px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 1rem;
+            border: 1px solid #222;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            aspect-ratio: 1 / 1;
+            min-height: 140px;
+        }
+        .btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(232,197,71,0.1);
+        }
+        .btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .btn {
+                padding: 20px 12px;
+                min-height: 120px;
+                font-size: 0.9rem;
+                gap: 8px;
+            }
+            
+            .btn svg {
+                width: 24px;
+                height: 24px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            /* Кнопки в модалке на мобильном тоже нормальные */
+            .modal-actions .btn {
+                aspect-ratio: auto;
+                min-height: auto;
+                flex-direction: row;
+                padding: 12px;
+            }
+        }
+
+        /* ── MODAL ── */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: var(--bg2);
+            border: 1px solid #222;
+            padding: 32px;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .form-control {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid #333;
+            color: var(--text);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus {
+            border-color: var(--accent);
+        }
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .modal-buttons-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        .modal-actions .btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            aspect-ratio: auto;
+            min-height: auto;
+            flex-direction: row;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #000;
+            border: none;
+        }
+        .btn-submit:hover {
+            box-shadow: 0 4px 12px rgba(232,197,71,0.3);
+        }
+        .btn-rep-login {
+            background: transparent;
+            color: var(--accent);
+            border: 1px dashed var(--accent);
+            width: 100%;
+            display: none; /* Скрыта по умолчанию */
+        }
+        .btn-rep-login:hover {
+            background: rgba(232,197,71,0.05);
+        }
+        .error-msg {
+            color: #ff4a4a;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>TradeFlow</h1>
+        <div class="subtitle"></div>
+
+        <div class="menu-grid">
+            <a href="catalog.html" class="btn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+                </svg>
+                Каталог продукции
+            </a>
+            
+            <a href="coverage.html" class="btn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Coverage Map
+            </a>
+
+            <a href="consignments.html" class="btn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                </svg>
+                Консигнации ТП
+            </a>
+
+            <button class="btn" onclick="openLoginModal('admin.html')">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                Панель управления
+            </button>
+        </div>
+    </div>
+
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-title">Вход в панель</div>
+            <div class="form-group">
+                <label>Логин администратора</label>
+                <input type="text" id="login-username" class="form-control" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="login-password" class="form-control">
+                <div class="error-msg" id="login-error">Неверный логин или пароль</div>
+            </div>
+            
+            <div class="modal-actions">
+                <div class="modal-buttons-row">
+                    <button class="btn" onclick="closeLoginModal()">Отмена</button>
+                    <button class="btn btn-submit" onclick="attemptLogin()">Войти как Админ</button>
+                </div>
+                <button class="btn btn-rep-login" id="rep-guest-btn" onclick="loginAsRepresentative()">Войти как торговый представитель</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_USER = "Sd1";
+        const ADMIN_PASS = "Sd123123";
+        let targetPage = 'admin.html';
+
+        function openLoginModal(page) {
+            if (page) targetPage = page;
+            
+            // Если открываем для карты — показываем кнопку «Войти как торговый представитель»
+            const repBtn = document.getElementById('rep-guest-btn');
+            if (targetPage === 'coverage.html') {
+                repBtn.style.display = 'block';
+            } else {
+                repBtn.style.display = 'none';
+            }
+
+            document.getElementById('login-modal').classList.add('open');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').style.display = 'none';
+            setTimeout(() => document.getElementById('login-username').focus(), 100);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('open');
+        }
+
+        function attemptLogin() {
+            const user = document.getElementById('login-username').value;
+            const pass = document.getElementById('login-password').value;
+            
+            if (user === ADMIN_USER && pass === ADMIN_PASS) {
+                localStorage.setItem('auth', 'true'); // Полный доступ для админа
+                closeLoginModal();
+                window.location.href = targetPage;
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+                document.getElementById('login-password').value = '';
+                setTimeout(() => document.getElementById('login-username').focus(), 50);
+            }
+        }
+
+// Функция входа для торгового представителя (без пароля админа)
+function loginAsRepresentative() {
+    localStorage.setItem('rep_bypass', 'true'); // Ставим метку обхода для торгового
+    closeLoginModal();
+    window.location.href = 'coverage.html';
+}
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeLoginModal();
+        });
+
+        document.getElementById('login-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeLoginModal();
+        });
+
+        document.getElementById('login-password').addEventListener('keypress', e => {
+            if (e.key === 'Enter') attemptLogin();
+        });
+    </script>
+</body>
+</html>

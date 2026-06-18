@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои заказы — TradeFlow</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --accent: #0066cc;
+      --text: #1d1d1f;
+      --muted: #86868b;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Шапка */
+    .header {
+      background: var(--card);
+      border-bottom: 1px solid #e0e0e5;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-back {
+      font-size: 22px;
+      text-decoration: none;
+      color: var(--accent);
+    }
+    .header-title {
+      flex: 1;
+    }
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .header-title p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-logout {
+      font-size: 13px;
+      color: var(--muted);
+      background: none;
+      border: 1px solid #e0e0e5;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    .btn-logout:hover { border-color: #aaa; }
+
+    /* Контент */
+    .content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Карточка заказа */
+    .order-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .order-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .order-id {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .order-date {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Статусы */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-new      { background: #fff3cd; color: #856404; }
+    .status-sent     { background: #cfe2ff; color: #0a58ca; }
+    .status-delivered{ background: #d1e7dd; color: #146c43; }
+
+    .order-total {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    /* Позиции */
+    .order-items-list {
+      border-top: 1px solid #f0f0f3;
+      padding-top: 10px;
+    }
+    .order-item-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 4px 0;
+      color: var(--text);
+    }
+    .order-item-row span:last-child {
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+
+    /* Пустое состояние */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty p { font-size: 16px; margin-bottom: 20px; }
+    .btn-catalog {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    /* Загрузка */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <a href="catalog.html" class="header-back">←</a>
+    <div class="header-title">
+      <h1>Мои заказы</h1>
+      <p id="buyer-name">—</p>
+    </div>
+    <button class="btn-logout" onclick="logout()">Выйти</button>
+  </div>
+
+  <div class="content">
+    <div class="loading" id="loading">Загружаем заказы...</div>
+    <div id="orders-list"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://xhcteinsgmrlpyijkhdb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_h6M-sNlKmmeW8xrQeW4EtA_LjTBDn-d';
+
+    const API = (endpoint, options = {}) => {
+      const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+      const headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        ...(options.headers || {})
+      };
+      if (options.body && typeof options.body === 'object') {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+      }
+      return fetch(url, { ...options, headers }).then(async res => {
+        if (!res.ok) { const e = await res.text(); throw new Error(e); }
+        if (res.status === 204) return null;
+        return res.json();
+      });
+    };
+
+    // Проверка авторизации
+    const buyerRaw = sessionStorage.getItem('buyer');
+    if (!buyerRaw) { window.location.href = 'login.html'; }
+    const buyer = JSON.parse(buyerRaw);
+    document.getElementById('buyer-name').textContent = buyer.shop_name || buyer.phone;
+
+    function logout() {
+      sessionStorage.removeItem('buyer');
+      window.location.href = 'login.html';
+    }
+
+    const STATUS_LABELS = {
+      new:       { label: 'Новый',     cls: 'status-new' },
+      sent:      { label: 'Отправлен', cls: 'status-sent' },
+      delivered: { label: 'Доставлен', cls: 'status-delivered' }
+    };
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    async function loadOrders() {
+      try {
+        const orders = await API(
+          `orders?buyer_id=eq.${buyer.id}&order=created_at.desc&select=id,status,total_price,created_at`
+        );
+
+        document.getElementById('loading').style.display = 'none';
+        const container = document.getElementById('orders-list');
+
+        if (!orders.length) {
+          container.innerHTML = `
+            <div class="empty">
+              <div class="icon">🛒</div>
+              <p>У вас пока нет заказов</p>
+              <a href="catalog.html" class="btn-catalog">Перейти в каталог</a>
+            </div>`;
+          return;
+        }
+
+        // Загружаем позиции для всех заказов
+        const orderIds = orders.map(o => o.id);
+        const items = await API(
+          `order_items?order_id=in.(${orderIds.join(',')})&select=order_id,product_name,quantity,total_price`
+        );
+
+        // Группируем позиции по order_id
+        const itemsByOrder = {};
+        items.forEach(i => {
+          if (!itemsByOrder[i.order_id]) itemsByOrder[i.order_id] = [];
+          itemsByOrder[i.order_id].push(i);
+        });
+
+        container.innerHTML = orders.map(order => {
+          const st = STATUS_LABELS[order.status] || { label: order.status, cls: 'status-new' };
+          const orderItems = itemsByOrder[order.id] || [];
+          return `
+            <div class="order-card">
+              <div class="order-header">
+                <div>
+                  <div class="order-id">Заказ #${order.id.slice(0,8).toUpperCase()}</div>
+                  <div class="order-date">${formatDate(order.created_at)}</div>
+                </div>
+                <span class="status-badge ${st.cls}">${st.label}</span>
+              </div>
+              <div class="order-total">${(order.total_price||0).toLocaleString()} ₸</div>
+              <div class="order-items-list">
+                ${orderItems.map(i => `
+                  <div class="order-item-row">
+                    <span>${i.product_name} × ${i.quantity} уп.</span>
+                    <span>${(i.total_price||0).toLocaleString()} ₸</span>
+                  </div>`).join('')}
+              </div>
+            </div>`;
+        }).join('');
+
+      } catch(e) {
+        console.error(e);
+        document.getElementById('loading').textContent = 'Ошибка загрузки. Обновите страницу.';
+      }
+    }
+
+    loadOrders();
+  </script>
+</body>
+</html>
